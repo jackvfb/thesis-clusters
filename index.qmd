@@ -232,10 +232,8 @@ This is, from my experience, a very unstable process for clustering as it seems 
 
 # Objective 2 {#sec-two}
 
-TESTING TESTING
-
-TESTING 2
-
-TESTING 3
+NEW TEST
+NEW TEST 2
+NEW TEST 3
 
 ## Clustering clicks within each species using `densityClust`
