@@ -235,5 +235,6 @@ This is, from my experience, a very unstable process for clustering as it seems 
 NEW TEST
 NEW TEST 2
 NEW TEST 3
+NEW TEST 4
 
 ## Clustering clicks within each species using `densityClust`
