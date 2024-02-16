@@ -35,19 +35,19 @@ set.seed(3150)
 
 # Objective 1 {#sec-one}
 
-This objective requires us to cluster the entirety of our training data on the same plot, to assess the separation between the different species classes.
+This objective requires us to cluster the entirety of our training data to assess the separation between the different species classes.
 
 There are three different methods shown here:
 
-- Clustering events using community ecology methods @sec-jvb
-- Clustering clicks using MDS @sec-MDS
+- Cluster events using Bray-Curtis dissimilarity @sec-jvb
+- Clustering clicks using Euclidean distance @sec-MDS
 - Clustering clicks using density clustering @sec-density
 
-## Clustering Events using `vegdist` {#sec-jvb}
+## Cluster events using community dissimilarity index {#sec-jvb}
 
-Ecological communities are compared to one another by counting the different species that appear in each community and then generating a dissimilarity index using `vegan::vegdist()`.
+Ecological communities are compared to one another by counting the different species that appear in each community and then generating a dissimilarity index using a method such as the Bray-Curtis dissimilarity.
 
-I applied this technique towards acoustic events by choosing an initial variable to use for comparison, then binning the clicks based on their values, and finally counting them. For example, if I wanted to compare events on the basis of peak frequency, I would then subdivide the region of the acoustic spectrum from 100-160 kHz to form bins of a chosen width, e.g. 1 kHz. Then, for every event, I would count clicks in each bin (see @fig-bins for an illustration of the resulting distributions)
+To turn acoustic events into "communities," I choose a variable to use for comparison, then binned the clicks based on their values. For example, if I wanted to compare events on the basis of peak frequency, I would then subdivide the region of the acoustic spectrum from 100-160 kHz to form bins of a chosen width, e.g. 1 kHz. Then, for every event, I would count clicks in each bin (see @fig-bins for an illustration of the resulting distributions)
 
 ```{r}
 #| label: fig-bins
@@ -60,7 +60,7 @@ nbhf_clicks %>%
   facet_wrap(~species, ncol=1, scale="free")
 ```
 
-Once the counts are available for all the events, the dissimilarity index between all events could then be generated using the methods established by community ecologists available through the `vegan` package.
+Once the counts are available for all the events, the dissimilarity index between all events could then be generated using `vegan::vegdist()`.
 
 ```{r}
 #| results: hide
@@ -117,13 +117,22 @@ clust(ctr, "centerfreq 3dB")
 
 ### Discussion
 
-- Events do appear to cluster by class.
+- Events do appear to cluster broadly by class.
     - To better visualize the clusters I could plot a centroid and ellipsoid, which I have seen in other plots of this type.
 - This method is probably sensitive to variability in the sizes of the events, so I wonder how results would change if we implemented rarefaction or other methods to make the sample size consistent across all events being compared.
 - The main drawback of this methods seems to be that clusters must be formed based on the distributions in just one dimension. I cannot conceive of how this same procedure could be applied to multi-dimensional data.
-- Additionally, this is not necessarily an accepted method of clustering in this field although, in my view, there are many parallels between "events" and "communities" that could allow for more fruitful investigations into cross-application of different methods.
+- Additionally, this is not necessarily an accepted method of clustering in this field although, in my view, there are many parallels between "events" and "communities".
 
-## Cluster Clicks using MDS {#sec-MDS}
+## Cluster clicks using Euclidean distance {#sec-MDS}
+
+If use clicks as our observational units, then there is no need to devise a procedure or method for handling relationships at the event level.
+
+The clusters shown in @fig-mds are created by calculating the Euclidean distances between clicks. A few steps were taken to prepare the data:
+
+1. An equal number of clicks (200) was sampled from each class to reduce the computational burden since the training set in it's entirety has over 4,500 clicks.
+2. I removed some variables in order to eliminate strange artifacts in the MDS plot, which you can see developing in @fig-mds-2:
+    - Measurements at 10 dB (min and max freq, center freq, Q, etc.) were omitted in favor of the 3 dB measurements.
+    - Also, measurements of secondary and tertiary peak frequencies and resulting troughs were also ommited, since not all clicks were the same in this respect.
 
 ```{r}
 #sample to reduce computational burden
@@ -134,6 +143,10 @@ samp <- nbhf_clicks %>%
   select(-c(UID:noiseLevel, BinaryFile:db)) %>% 
   mutate(id = 1:n()) %>%
   filter(complete.cases(.))
+
+# create copy of sample data with some variables removed
+samp_drop <- samp %>% 
+  select(id, species, duration:peak, Q_3dB:centerkHz_3dB)
 
 # define function to perform MDS
 doMDS <- function(x) {
@@ -153,26 +166,10 @@ doMDS <- function(x) {
   return(x.mds)
 }
 
-# create copy of sample data with redundant variables removed
-samp_drop <- samp %>% 
-  select(id, species, duration:peak, Q_3dB:centerkHz_3dB)
-
 #perform MDS on each data set, with and without redundant variables
 drop <- doMDS(samp_drop)
 not_drop <- doMDS(samp)
 ```
-
-If we choose to use clicks as our observational units, then there is no need to devise a procedure or method for handling relationships at the event level.
-
-The clusters shown in @fig-mds-1 are created using multidimensional scaling. The first step implemented here was to sample each class for an equal number of clicks, to reduce the computational burden since the data set in it's entirety has over 4,500 clicks.
-
-After sampling each class, a distance matrix was calculated (Euclidean distance), then scaled, before performing MDS.
-
-As detailed below, it was deemed advantageous to drop some variables in order to eliminate strange artifacts in the MDS plot, which you can see developing in @fig-mds-2. This striping occurs only if the *complete* set of variables is used to calculate the distance matrix.
-
-- Measurements at 10 dB (min and max freq, center freq, Q, etc.) were omitted in favor of the 3 dB measurements.
-- Also, measurements of secondary and tertiary peak frequencies and resulting troughs were also ommited, since not all clicks were the same in this respect.
-- This left a final set of variables given as `{r} names(samp_drop)`
 
 ```{r}
 #| label: fig-mds
@@ -193,8 +190,9 @@ not_drop %>%
 
 ### Discussion
 
-- Clusters appear to be rather robust
-- Removing so many variables is justified?
+- The MDS plot reveals broad separation among the species classes, similar to @fig-event-clusters.
+- The fact that strange artifacts appear in the plot with all variables included (@fig-mds-2) is puzzling.
+    - Does this rationalize the removal of some variables?
 
 ## Cluster Clicks using `densityClust` {#sec-density}
 
@@ -207,31 +205,44 @@ dist <- samp_drop %>%
   dist(method="euclidean")
 
 cl <- densityClust(dist)
-cl <- findClusters(cl, rho=5, delta=2)
+cl1 <- findClusters(cl, rho=20, delta=1)
+cl2 <- findClusters(cl, rho=10, delta=1)
 ```
-1. Calculate distance matrix from data set `samp_drop` with redundant measurements dropped
-2. Distance cutoff calculated as 0.501006
-3. Select rho and delta values as chosen to capture four different groups
 
-Clusters shown in @fig-density-clust
+Using the data with reduced variables, the density clustering algorithm formed the clusters shown in @fig-density-clust. The counts of each species in each of the resulting clusters is given in @tbl-clust-assn.
+
+While the value of $\delta$ was kept constant at 1, changing the value of $\rho$ allowed me to partition the data into fewer clusters (@fig-density-clust-1) or more clusters (@fig-density-clust-2).
+
 
 ```{r}
 #| label: fig-density-clust
-#| fig-cap: "Density clusters, with distance cutoff calculated as 0.501006. Selected rho=5, delta=2 in order to construct the clusters."
-plotDensityClust(cl)
+#| fig-cap: "Density clusters with different thresholds chosen"
+#| fig-subcap: 
+#|     - "Four clusters formed with \u03c1=20 and \u03B4=1"
+#|     - "Six clusters formed with \u03c1=10 and \u03B4=1"
+plotDensityClust(cl1)
+plotDensityClust(cl2)
 ```
 
 ```{r}
 #| label: tbl-clust-assn
 #| tbl-cap: "Table of cluster assignments"
-table(samp_drop$species, cl$clusters)
+#| tbl-subcap: 
+#|     - "Cluster plot 1"
+#|     - "Cluster plot 2"
+
+table(samp_drop$species, cl1$clusters)
+table(samp_drop$species, cl2$clusters)
 ```
 ### Discussion
 
-This is, from my experience, a very unstable process for clustering as it seems that output can vary wildly from run to run. In general, I notice that a single cluster can be made, in which case all three classes are overwhelmingly represented by the same cluster. If however, the run varies and multiple clusters are formed (can be 4-6 typically), then pd and pp typically associate with one cluster wheras ks associates with a different cluster, overwhelmingly. I am also slightly confused by this output because the clusters sometimes do not appear to really follow the boundaries that circumscribe the clusters that my own eyes create in the scatter plot, and can often generate strange results.
+- The picture emerging from this cluster plot is perhaps more nuanced than that given by the previous clustering methods.
+- Some interesting patterns emerge when looking at @tbl-clust-assn:
+    - When four clusters are formed, *Kogia* appears to have a strong affinitiy to cluster 2, and harbor porpoise to cluster 1. Dall's porpoise has a more even distribution across all four clusters though it is represented in the highest numbers in cluster three.
+    - When six clusters are formed, *Kogia* begins to dissolve. About 2/3 of the clicks remain together in a single cluster but the rest get redistributed in separate clusters.
+- Could some of this nuance be related to variation among individual events within each class?
 
 # Objective 2 {#sec-two}
 
-NO TEST NO TEST NO TEST
+This objective requires us to cluster each species class individually to identify whether there are outlying events with anomalous features.
 
-## Clustering clicks within each species using `densityClust`
