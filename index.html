@@ -6,8 +6,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Jackson">
-<meta name="dcterms.date" content="2024-02-11">
+<meta name="author" content="Jackson VB">
+<meta name="dcterms.date" content="2024-02-16">
 
 <title>Check Up on NBHF Clusters</title>
 <style>
@@ -70,6 +70,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="index_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="index_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 </head>
 
@@ -81,28 +83,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#intro" id="toc-intro" class="nav-link active" data-scroll-target="#intro">Intro</a>
-  <ul class="collapse">
-  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
-  </ul></li>
-  <li><a href="#sec-one" id="toc-sec-one" class="nav-link" data-scroll-target="#sec-one">Objective 1</a>
-  <ul class="collapse">
-  <li><a href="#sec-jvb" id="toc-sec-jvb" class="nav-link" data-scroll-target="#sec-jvb">Clustering Events using <code>vegdist</code></a>
+  <li><a href="#intro" id="toc-intro" class="nav-link active" data-scroll-target="#intro">Intro</a></li>
+  <li><a href="#cluster-events-using-community-dissimilarity-index" id="toc-cluster-events-using-community-dissimilarity-index" class="nav-link" data-scroll-target="#cluster-events-using-community-dissimilarity-index">Cluster events using community dissimilarity index</a>
   <ul class="collapse">
   <li><a href="#discussion" id="toc-discussion" class="nav-link" data-scroll-target="#discussion">Discussion</a></li>
   </ul></li>
-  <li><a href="#sec-MDS" id="toc-sec-MDS" class="nav-link" data-scroll-target="#sec-MDS">Cluster Clicks using MDS</a>
+  <li><a href="#cluster-clicks-using-euclidean-distance" id="toc-cluster-clicks-using-euclidean-distance" class="nav-link" data-scroll-target="#cluster-clicks-using-euclidean-distance">Cluster clicks using Euclidean distance</a>
   <ul class="collapse">
   <li><a href="#discussion-1" id="toc-discussion-1" class="nav-link" data-scroll-target="#discussion-1">Discussion</a></li>
   </ul></li>
-  <li><a href="#sec-density" id="toc-sec-density" class="nav-link" data-scroll-target="#sec-density">Cluster Clicks using <code>densityClust</code></a>
+  <li><a href="#cluster-clicks-using-densityclust" id="toc-cluster-clicks-using-densityclust" class="nav-link" data-scroll-target="#cluster-clicks-using-densityclust">Cluster Clicks using <code>densityClust</code></a>
   <ul class="collapse">
   <li><a href="#discussion-2" id="toc-discussion-2" class="nav-link" data-scroll-target="#discussion-2">Discussion</a></li>
   </ul></li>
-  </ul></li>
-  <li><a href="#sec-two" id="toc-sec-two" class="nav-link" data-scroll-target="#sec-two">Objective 2</a>
+  <li><a href="#identifying-anomalous-events" id="toc-identifying-anomalous-events" class="nav-link" data-scroll-target="#identifying-anomalous-events">Identifying anomalous events</a>
   <ul class="collapse">
-  <li><a href="#clustering-clicks-within-each-species-using-densityclust" id="toc-clustering-clicks-within-each-species-using-densityclust" class="nav-link" data-scroll-target="#clustering-clicks-within-each-species-using-densityclust">Clustering clicks within each species using <code>densityClust</code></a></li>
+  <li><a href="#discussion-3" id="toc-discussion-3" class="nav-link" data-scroll-target="#discussion-3">Discussion</a></li>
+  <li><a href="#follow-up" id="toc-follow-up" class="nav-link" data-scroll-target="#follow-up">Follow-up</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -121,14 +118,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>Jackson </p>
+             <p>Jackson VB </p>
           </div>
   </div>
     
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">February 11, 2024</p>
+      <p class="date">February 16, 2024</p>
     </div>
   </div>
   
@@ -140,45 +137,25 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<section id="intro" class="level1 unnumbered">
-<h1 class="unnumbered">Intro</h1>
-<p>We want to identify clusters within our training set before we make our classifier learn from it. There are two objectives for using unsupervised clustering:</p>
+<section id="intro" class="level2 unnumbered">
+<h2 class="unnumbered anchored" data-anchor-id="intro">Intro</h2>
+<p>We want to identify clusters within our training set before we make our classifier learn from it. There are two objectives for unsupervised clustering:</p>
 <ol type="1">
-<li>Look across species to identify whether species classes form separate clusters. (<a href="#sec-one" class="quarto-xref">Section&nbsp;1</a>)
+<li>Look across species to identify whether species classes form separate clusters.
 <ul>
 <li>The existence of clusters suggests that there are meaningful differences between classes that the classifier can be trained to recognize.</li>
 </ul></li>
-<li>Look within species classes to assess variability among events. (<a href="#sec-two" class="quarto-xref">Section&nbsp;2</a>)
+<li>Look within species classes to assess variability among events.
 <ul>
 <li>The existence of clusters within an individual species class may indicate that there are outlying events with anomalous features that should be excluded from the training set.</li>
 </ul></li>
 </ol>
 <p>In pursuing these objectives, we might also want to consider which observational unit we’d like to use – <strong>click</strong> or <strong>event</strong>? And would this change depending on which objective we are pursuing?</p>
-<section id="setup" class="level2">
-<h2 class="anchored" data-anchor-id="setup">Setup</h2>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(identidrift) <span class="co"># package with my thesis data. On GitHub, "jackvfb/identidrift"</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(vegan)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(densityClust)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">3150</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
 </section>
-</section>
-<section id="sec-one" class="level1">
-<h1>Objective 1</h1>
-<p>This objective requires us to cluster the entirety of our training data on the same plot, to assess the separation between the different species classes.</p>
-<p>There are three different methods shown here:</p>
-<ul>
-<li>Clustering events using community ecology methods <a href="#sec-jvb" class="quarto-xref">Section&nbsp;1.1</a></li>
-<li>Clustering clicks using MDS <a href="#sec-MDS" class="quarto-xref">Section&nbsp;1.2</a></li>
-<li>Clustering clicks using density clustering <a href="#sec-density" class="quarto-xref">Section&nbsp;1.3</a></li>
-</ul>
-<section id="sec-jvb" class="level2">
-<h2 class="anchored" data-anchor-id="sec-jvb">Clustering Events using <code>vegdist</code></h2>
-<p>Ecological communities are compared to one another by counting the different species that appear in each community and then generating a dissimilarity index using <code>vegan::vegdist()</code>.</p>
-<p>I applied this technique towards acoustic events by choosing an initial variable to use for comparison, then binning the clicks based on their values, and finally counting them. For example, if I wanted to compare events on the basis of peak frequency, I would then subdivide the region of the acoustic spectrum from 100-160 kHz to form bins of a chosen width, e.g.&nbsp;1 kHz. Then, for every event, I would count clicks in each bin (see <a href="#fig-bins" class="quarto-xref">Figure&nbsp;1</a> for an illustration of the resulting distributions)</p>
+<section id="cluster-events-using-community-dissimilarity-index" class="level2">
+<h2 class="anchored" data-anchor-id="cluster-events-using-community-dissimilarity-index">Cluster events using community dissimilarity index</h2>
+<p>Ecological communities are compared to one another by counting the different species that appear in each community and then generating a dissimilarity index using a method such as the Bray-Curtis dissimilarity.</p>
+<p>To turn acoustic events into “communities,” I choose a variable to use for comparison, then binned the clicks based on their values. For example, if I wanted to compare events on the basis of peak frequency, I would then subdivide the region of the acoustic spectrum from 100-160 kHz to form bins of a chosen width, e.g.&nbsp;1 kHz. Then, for every event, I would count clicks in each bin (see <a href="#fig-bins" class="quarto-xref">Figure&nbsp;1</a> for an illustration of the resulting distributions)</p>
 <div class="cell">
 <div class="cell-output-display">
 <div id="fig-bins" class="quarto-figure quarto-figure-center anchored" width="672">
@@ -193,16 +170,16 @@ Figure&nbsp;1: Faceted by species, you can see that each individual line in this
 </div>
 </div>
 </div>
-<p>Once the counts are available for all the events, the dissimilarity index between all events could then be generated using the methods established by community ecologists available through the <code>vegan</code> package.</p>
+<p>Once the counts are available for all the events, the dissimilarity index between all events could then be generated using <code>vegan::vegdist()</code>.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#perform binning procedure using "peak" variable</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>pk <span class="ot">&lt;-</span> identidrift<span class="sc">::</span><span class="fu">eventbin</span>(nbhf_clicks, peak)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">#generate distance matrix</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>dist <span class="ot">&lt;-</span> vegan<span class="sc">::</span><span class="fu">vegdist</span>(pk, <span class="at">method =</span> <span class="st">"bray"</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">#use distance matrix to perform ordination</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>nmds <span class="ot">&lt;-</span> vegan<span class="sc">::</span><span class="fu">metaMDS</span>(dist)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#perform binning procedure using "peak" variable</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>pk <span class="ot">&lt;-</span> identidrift<span class="sc">::</span><span class="fu">eventbin</span>(nbhf_clicks, peak)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#generate distance matrix</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>dist <span class="ot">&lt;-</span> vegan<span class="sc">::</span><span class="fu">vegdist</span>(pk, <span class="at">method =</span> <span class="st">"bray"</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#use distance matrix to perform ordination</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>nmds <span class="ot">&lt;-</span> vegan<span class="sc">::</span><span class="fu">metaMDS</span>(dist)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The clusters are then shown in <a href="#fig-event-clusters-1" class="quarto-xref">Figure&nbsp;2 (a)</a>, along with plots that show clusters formed using the same procedure but with respect to different variables.</p>
 <div class="cell">
@@ -255,27 +232,28 @@ Figure&nbsp;2: Clusters with respect to different variables where each point rep
 <section id="discussion" class="level3">
 <h3 class="anchored" data-anchor-id="discussion">Discussion</h3>
 <ul>
-<li>Events do appear to cluster by class.
+<li>Events do appear to cluster broadly by class.
 <ul>
 <li>To better visualize the clusters I could plot a centroid and ellipsoid, which I have seen in other plots of this type.</li>
 </ul></li>
 <li>This method is probably sensitive to variability in the sizes of the events, so I wonder how results would change if we implemented rarefaction or other methods to make the sample size consistent across all events being compared.</li>
 <li>The main drawback of this methods seems to be that clusters must be formed based on the distributions in just one dimension. I cannot conceive of how this same procedure could be applied to multi-dimensional data.</li>
-<li>Additionally, this is not necessarily an accepted method of clustering in this field although, in my view, there are many parallels between “events” and “communities” that could allow for more fruitful investigations into cross-application of different methods.</li>
+<li>Additionally, this is not necessarily an accepted method of clustering in this field although, in my view, there are many parallels between “events” and “communities”.</li>
 </ul>
 </section>
 </section>
-<section id="sec-MDS" class="level2">
-<h2 class="anchored" data-anchor-id="sec-MDS">Cluster Clicks using MDS</h2>
-<p>If we choose to use clicks as our observational units, then there is no need to devise a procedure or method for handling relationships at the event level.</p>
-<p>The clusters shown in <a href="#fig-mds-1" class="quarto-xref">Figure&nbsp;3 (a)</a> are created using multidimensional scaling. The first step implemented here was to sample each class for an equal number of clicks, to reduce the computational burden since the data set in it’s entirety has over 4,500 clicks.</p>
-<p>After sampling each class, a distance matrix was calculated (Euclidean distance), then scaled, before performing MDS.</p>
-<p>As detailed below, it was deemed advantageous to drop some variables in order to eliminate strange artifacts in the MDS plot, which you can see developing in <a href="#fig-mds-2" class="quarto-xref">Figure&nbsp;3 (b)</a>. This striping occurs only if the <em>complete</em> set of variables is used to calculate the distance matrix.</p>
+<section id="cluster-clicks-using-euclidean-distance" class="level2">
+<h2 class="anchored" data-anchor-id="cluster-clicks-using-euclidean-distance">Cluster clicks using Euclidean distance</h2>
+<p>If use clicks as our observational units, then there is no need to devise a procedure or method for handling relationships at the event level.</p>
+<p>The clusters shown in <a href="#fig-mds" class="quarto-xref">Figure&nbsp;3</a> are created by calculating the Euclidean distances between clicks. A few steps were taken to prepare the data:</p>
+<ol type="1">
+<li>An equal number of clicks (200) was sampled from each class to reduce the computational burden since the training set in it’s entirety has over 4,500 clicks.</li>
+<li>I removed some variables in order to eliminate strange artifacts in the MDS plot, which you can see developing in <a href="#fig-mds-2" class="quarto-xref">Figure&nbsp;3 (b)</a>:
 <ul>
 <li>Measurements at 10 dB (min and max freq, center freq, Q, etc.) were omitted in favor of the 3 dB measurements.</li>
 <li>Also, measurements of secondary and tertiary peak frequencies and resulting troughs were also ommited, since not all clicks were the same in this respect.</li>
-<li>This left a final set of variables given as id, species, duration, peakTime, peak, Q_3dB, fmin_3dB, fmax_3dB, BW_3dB, centerkHz_3dB</li>
-</ul>
+</ul></li>
+</ol>
 <div class="cell">
 <div id="fig-mds" class="cell quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -314,34 +292,54 @@ Figure&nbsp;3: Euclidean distances between clicks used for MDS. Species represen
 <section id="discussion-1" class="level3">
 <h3 class="anchored" data-anchor-id="discussion-1">Discussion</h3>
 <ul>
-<li>Clusters appear to be rather robust</li>
-<li>Removing so many variables is justified?</li>
+<li>The MDS plot reveals broad separation among the species classes, similar to <a href="#fig-event-clusters" class="quarto-xref">Figure&nbsp;2</a>.</li>
+<li>The fact that strange artifacts appear in the plot with all variables included (<a href="#fig-mds-2" class="quarto-xref">Figure&nbsp;3 (b)</a>) is puzzling.
+<ul>
+<li>Does this rationalize the removal of some variables?</li>
+</ul></li>
 </ul>
 </section>
 </section>
-<section id="sec-density" class="level2">
-<h2 class="anchored" data-anchor-id="sec-density">Cluster Clicks using <code>densityClust</code></h2>
-<ol type="1">
-<li>Calculate distance matrix from data set <code>samp_drop</code> with redundant measurements dropped</li>
-<li>Distance cutoff calculated as 0.501006</li>
-<li>Select rho and delta values as chosen to capture four different groups</li>
-</ol>
-<p>Clusters shown in <a href="#fig-density-clust" class="quarto-xref">Figure&nbsp;4</a></p>
+<section id="cluster-clicks-using-densityclust" class="level2">
+<h2 class="anchored" data-anchor-id="cluster-clicks-using-densityclust">Cluster Clicks using <code>densityClust</code></h2>
+<p>Using the data with reduced variables, the density clustering algorithm formed the clusters shown in <a href="#fig-density-clust" class="quarto-xref">Figure&nbsp;4</a>. The counts of each species in each of the resulting clusters is given in <a href="#tbl-clust-assn" class="quarto-xref">Table&nbsp;1</a>.</p>
+<p>While the value of <span class="math inline">\(\delta\)</span> was kept constant at 1, changing the value of <span class="math inline">\(\rho\)</span> allowed me to partition the data into fewer clusters (<a href="#fig-density-clust-1" class="quarto-xref">Figure&nbsp;4 (a)</a>) or more clusters (<a href="#fig-density-clust-2" class="quarto-xref">Figure&nbsp;4 (b)</a>).</p>
 <div class="cell">
-<div class="cell-output-display">
-<div id="fig-density-clust" class="quarto-figure quarto-figure-center anchored" width="672">
+<div id="fig-density-clust" class="cell quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-density-clust-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="index_files/figure-html/fig-density-clust-1.png" class="img-fluid figure-img" width="672">
+<div class="cell-output-display">
+<div id="fig-density-clust-1" class="quarto-figure quarto-figure-center anchored" width="672">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-density-clust-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-density-clust-1.png" class="img-fluid figure-img" data-ref-parent="fig-density-clust" width="672">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-density-clust-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Density clusters, with distance cutoff calculated as 0.501006. Selected rho=5, delta=2 in order to construct the clusters.
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-density-clust-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) Four clusters formed with ρ=20 and δ=1
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div id="fig-density-clust-2" class="quarto-figure quarto-figure-center anchored" width="672">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-density-clust-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-density-clust-2.png" class="img-fluid figure-img" data-ref-parent="fig-density-clust" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-density-clust-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b) Six clusters formed with ρ=10 and δ=1
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<div id="tbl-clust-assn" class="cell anchored">
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-density-clust-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Density clusters with different thresholds chosen
+</figcaption>
+</figure>
+</div>
+</div>
+<div id="tbl-clust-assn" class="cell anchored" data-tbl-subcap="[&quot;Cluster plot 1&quot;,&quot;Cluster plot 2&quot;]">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-clust-assn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;1: Table of cluster assignments
@@ -349,25 +347,137 @@ Table&nbsp;1: Table of cluster assignments
 <div aria-describedby="tbl-clust-assn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-stdout">
 <pre><code>    
-       1   2   3
-  ks   6 168  26
-  pd 176  22   2
-  pp 187  11   2</code></pre>
+       1   2   3   4
+  ks   4 194   1   1
+  pd  38  24 102  36
+  pp 179  13   6   2</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    
+       1   2   3   4   5   6
+  ks   4  28   1 124   1  42
+  pd  38   1 102  15  36   8
+  pp 179   1   6   8   2   4</code></pre>
 </div>
 </div>
 </figure>
 </div>
 <section id="discussion-2" class="level3">
 <h3 class="anchored" data-anchor-id="discussion-2">Discussion</h3>
-<p>This is, from my experience, a very unstable process for clustering as it seems that output can vary wildly from run to run. In general, I notice that a single cluster can be made, in which case all three classes are overwhelmingly represented by the same cluster. If however, the run varies and multiple clusters are formed (can be 4-6 typically), then pd and pp typically associate with one cluster wheras ks associates with a different cluster, overwhelmingly. I am also slightly confused by this output because the clusters sometimes do not appear to really follow the boundaries that circumscribe the clusters that my own eyes create in the scatter plot, and can often generate strange results.</p>
+<ul>
+<li>The picture emerging from this cluster plot is perhaps more nuanced than that given by the previous clustering methods.</li>
+<li>Some interesting patterns emerge when looking at <a href="#tbl-clust-assn" class="quarto-xref">Table&nbsp;1</a>:
+<ul>
+<li>When four clusters are formed, <em>Kogia</em> appears to have a strong affinitiy to cluster 2, and harbor porpoise to cluster 1. Dall’s porpoise has a more even distribution across all four clusters though it is represented in the highest numbers in cluster three.</li>
+<li>When six clusters are formed, <em>Kogia</em> begins to dissolve. About 2/3 of the clicks remain together in a single cluster but the rest get redistributed in separate clusters. Harbor porpoise remains overwhelmingly in cluster 1.</li>
+</ul></li>
+<li>Could some of this nuance be related to variation among individual events within each class?</li>
+<li>What is the optimal number of clusters?</li>
+</ul>
 </section>
 </section>
+<section id="identifying-anomalous-events" class="level2">
+<h2 class="anchored" data-anchor-id="identifying-anomalous-events">Identifying anomalous events</h2>
+<p>Using the four clusters formed in <a href="#fig-density-clust-1" class="quarto-xref">Figure&nbsp;4 (a)</a>, I will explode each species class into the set of all of its events and then take the sum in each cluster. These counts are shown in <a href="#fig-2d-bin" class="quarto-xref">Figure&nbsp;5</a>. The plots are separated by species class.</p>
+<div class="cell">
+<div id="fig-2d-bin" class="cell quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-2d-bin-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div id="fig-2d-bin-1" class="quarto-figure quarto-figure-center anchored" width="672">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-2d-bin-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-2d-bin-1.png" class="img-fluid figure-img" data-ref-parent="fig-2d-bin" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-2d-bin-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) Harbor porpoise clicks
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div id="fig-2d-bin-2" class="quarto-figure quarto-figure-center anchored" width="672">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-2d-bin-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-2d-bin-2.png" class="img-fluid figure-img" data-ref-parent="fig-2d-bin" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-2d-bin-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b) Dall’s porpoise clicks
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div id="fig-2d-bin-3" class="quarto-figure quarto-figure-center anchored" width="672">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-2d-bin-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-2d-bin-3.png" class="img-fluid figure-img" data-ref-parent="fig-2d-bin" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-2d-bin-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(c) Kogia clicks
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-2d-bin-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Counts of clicks in each cluster, seperated by both event and species
+</figcaption>
+</figure>
+</div>
+</div>
+<section id="discussion-3" class="level3">
+<h3 class="anchored" data-anchor-id="discussion-3">Discussion</h3>
+<ul>
+<li>For both <em>Kogia</em> and harbor porpoise, we see that clicks cluster predominately in a single cluster, 2 and 1, respectively.</li>
+<li>In these classes, we do not see evidence of anomalous events because, for the most part, the plots show an unbroken top-down chain. This means that all events contribute clicks into the dominant cluster.
+<ul>
+<li>While there are some clicks assigned to other clusters, within these same events there are also clicks that are assigned to the dominant cluster.</li>
+</ul></li>
+<li>Dall’s porpoise events are more scattered across the clusters. The presence of disjoint line segments that are neither vertically or horizontally overlapping suggests that the events may split into several smaller clusters.</li>
+</ul>
 </section>
-<section id="sec-two" class="level1">
-<h1>Objective 2</h1>
-<p>NO TEST NO TEST NO TEST</p>
-<section id="clustering-clicks-within-each-species-using-densityclust" class="level2">
-<h2 class="anchored" data-anchor-id="clustering-clicks-within-each-species-using-densityclust">Clustering clicks within each species using <code>densityClust</code></h2>
+<section id="follow-up" class="level3">
+<h3 class="anchored" data-anchor-id="follow-up">Follow-up</h3>
+<p>As an addendum, here are the clusters formed for the Dall’s porpoise class. The density plot suggests that algorithm strongly favors a solution of one cluster.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Distance cutoff calculated to 0.3985233 </code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/unnamed-chunk-13-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                    
+                                      1  2  3
+  Bangarang_Dalls - Copy.OE1         35  1  1
+  Bangarang_Dalls - Copy.OE2          9  4  0
+  Bangarang_Dalls - Copy.OE3         15  4  1
+  Bangarang_Dalls - Copy.OE4          6  0  0
+  CalCURSeas_Dalls - Copy.OE1        25  0  0
+  CalCURSeas_Dalls - Copy.OE2         7  0  0
+  CalCURSeas_Dalls - Copy.OE3        14  0  0
+  CalCURSeas_Dalls - Copy.OE4         0  0  7
+  CalCURSeas_Dalls - Copy.OE5         9  9  0
+  CalCURSeas_Dalls - Copy.OE6         6  0  7
+  PASCAL_Dalls_TowedArray - Copy.OE1 24  0  3
+  PASCAL_Dalls_TowedArray - Copy.OE2  0  0  3
+  PASCAL_Dalls_TowedArray - Copy.OE3  1  1  0
+  PASCAL_Dalls_TowedArray - Copy.OE4  5  1  1
+  PASCAL_Dalls_TowedArray - Copy.OE5  2  2  4</code></pre>
+</div>
+</div>
 </section>
 </section>
 
