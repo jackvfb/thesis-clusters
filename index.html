@@ -6,10 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Jackson VB">
-<meta name="dcterms.date" content="2024-02-16">
+<meta name="author" content="Jackson Vanfleet-Brown">
+<meta name="dcterms.date" content="2024-02-25">
 
-<title>Check Up on NBHF Clusters</title>
+<title>NBHF Clusters: Streamlined Results</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -84,22 +84,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#intro" id="toc-intro" class="nav-link active" data-scroll-target="#intro">Intro</a></li>
-  <li><a href="#cluster-events-using-community-dissimilarity-index" id="toc-cluster-events-using-community-dissimilarity-index" class="nav-link" data-scroll-target="#cluster-events-using-community-dissimilarity-index">Cluster events using community dissimilarity index</a>
+  <li><a href="#sec-species" id="toc-sec-species" class="nav-link" data-scroll-target="#sec-species">Objective 1</a>
   <ul class="collapse">
+  <li><a href="#method" id="toc-method" class="nav-link" data-scroll-target="#method">Method</a></li>
   <li><a href="#discussion" id="toc-discussion" class="nav-link" data-scroll-target="#discussion">Discussion</a></li>
   </ul></li>
-  <li><a href="#cluster-clicks-using-euclidean-distance" id="toc-cluster-clicks-using-euclidean-distance" class="nav-link" data-scroll-target="#cluster-clicks-using-euclidean-distance">Cluster clicks using Euclidean distance</a>
+  <li><a href="#sec-events" id="toc-sec-events" class="nav-link" data-scroll-target="#sec-events">Objective 2</a>
   <ul class="collapse">
+  <li><a href="#method-1" id="toc-method-1" class="nav-link" data-scroll-target="#method-1">Method</a></li>
   <li><a href="#discussion-1" id="toc-discussion-1" class="nav-link" data-scroll-target="#discussion-1">Discussion</a></li>
-  </ul></li>
-  <li><a href="#cluster-clicks-using-densityclust" id="toc-cluster-clicks-using-densityclust" class="nav-link" data-scroll-target="#cluster-clicks-using-densityclust">Cluster Clicks using <code>densityClust</code></a>
-  <ul class="collapse">
-  <li><a href="#discussion-2" id="toc-discussion-2" class="nav-link" data-scroll-target="#discussion-2">Discussion</a></li>
-  </ul></li>
-  <li><a href="#identifying-anomalous-events" id="toc-identifying-anomalous-events" class="nav-link" data-scroll-target="#identifying-anomalous-events">Identifying anomalous events</a>
-  <ul class="collapse">
-  <li><a href="#discussion-3" id="toc-discussion-3" class="nav-link" data-scroll-target="#discussion-3">Discussion</a></li>
-  <li><a href="#follow-up" id="toc-follow-up" class="nav-link" data-scroll-target="#follow-up">Follow-up</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -108,7 +101,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Check Up on NBHF Clusters</h1>
+<h1 class="title">NBHF Clusters: Streamlined Results</h1>
 </div>
 
 
@@ -118,14 +111,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Author</div>
     <div class="quarto-title-meta-contents">
-             <p>Jackson VB </p>
+             <p>Jackson Vanfleet-Brown </p>
           </div>
   </div>
     
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">February 16, 2024</p>
+      <p class="date">February 25, 2024</p>
     </div>
   </div>
   
@@ -141,47 +134,208 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="unnumbered anchored" data-anchor-id="intro">Intro</h2>
 <p>We want to identify clusters within our training set before we make our classifier learn from it. There are two objectives for unsupervised clustering:</p>
 <ol type="1">
-<li>Look across species to identify whether species classes form separate clusters.
+<li>Look across species to identify whether species classes form separate clusters (<a href="#sec-species" class="quarto-xref">Section&nbsp;1</a>).
 <ul>
 <li>The existence of clusters suggests that there are meaningful differences between classes that the classifier can be trained to recognize.</li>
 </ul></li>
-<li>Look within species classes to assess variability among events.
+<li>Look within species classes to assess variability among events (<a href="#sec-events" class="quarto-xref">Section&nbsp;2</a>).
 <ul>
 <li>The existence of clusters within an individual species class may indicate that there are outlying events with anomalous features that should be excluded from the training set.</li>
 </ul></li>
 </ol>
-<p>In pursuing these objectives, we might also want to consider which observational unit we’d like to use – <strong>click</strong> or <strong>event</strong>? And would this change depending on which objective we are pursuing?</p>
 </section>
-<section id="cluster-events-using-community-dissimilarity-index" class="level2">
-<h2 class="anchored" data-anchor-id="cluster-events-using-community-dissimilarity-index">Cluster events using community dissimilarity index</h2>
-<p>Ecological communities are compared to one another by counting the different species that appear in each community and then generating a dissimilarity index using a method such as the Bray-Curtis dissimilarity.</p>
-<p>To turn acoustic events into “communities,” I choose a variable to use for comparison, then binned the clicks based on their values. For example, if I wanted to compare events on the basis of peak frequency, I would then subdivide the region of the acoustic spectrum from 100-160 kHz to form bins of a chosen width, e.g.&nbsp;1 kHz. Then, for every event, I would count clicks in each bin (see <a href="#fig-bins" class="quarto-xref">Figure&nbsp;1</a> for an illustration of the resulting distributions)</p>
+<section id="sec-species" class="level2">
+<h2 class="anchored" data-anchor-id="sec-species">Objective 1</h2>
+<section id="method" class="level3">
+<h3 class="anchored" data-anchor-id="method">Method</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="annotated-cell-1"><pre class="sourceCode r code-annotation-code code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-1-1"><a href="#annotated-cell-1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="annotated-cell-1-2"><a href="#annotated-cell-1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-3"><a href="#annotated-cell-1-3" aria-hidden="true" tabindex="-1"></a>samp <span class="ot">&lt;-</span> nbhf_clicks <span class="sc">%&gt;%</span> </span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="1" onclick="event.preventDefault();" href="">1</a><span id="annotated-cell-1-4" class="code-annotation-target"><a href="#annotated-cell-1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(species) <span class="sc">%&gt;%</span></span>
+<span id="annotated-cell-1-5"><a href="#annotated-cell-1-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_sample</span>(<span class="at">n=</span><span class="dv">200</span>) <span class="sc">%&gt;%</span></span>
+<span id="annotated-cell-1-6"><a href="#annotated-cell-1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="annotated-cell-1-7"><a href="#annotated-cell-1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-8"><a href="#annotated-cell-1-8" aria-hidden="true" tabindex="-1"></a>samp_rm <span class="ot">&lt;-</span> samp <span class="sc">%&gt;%</span> </span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="2" onclick="event.preventDefault();" href="">2</a><span id="annotated-cell-1-9" class="code-annotation-target"><a href="#annotated-cell-1-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(UID<span class="sc">:</span>noiseLevel, BinaryFile, eventLabel,</span>
+<span id="annotated-cell-1-10"><a href="#annotated-cell-1-10" aria-hidden="true" tabindex="-1"></a>            detectorName, db)) <span class="sc">%&gt;%</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="3" onclick="event.preventDefault();" href="">3</a><span id="annotated-cell-1-11" class="code-annotation-target"><a href="#annotated-cell-1-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(species, eventId, duration<span class="sc">:</span>peak,</span>
+<span id="annotated-cell-1-12"><a href="#annotated-cell-1-12" aria-hidden="true" tabindex="-1"></a>         Q_10dB<span class="sc">:</span>centerkHz_3dB)</span>
+<span id="annotated-cell-1-13"><a href="#annotated-cell-1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-14"><a href="#annotated-cell-1-14" aria-hidden="true" tabindex="-1"></a>dist <span class="ot">&lt;-</span> samp_rm <span class="sc">%&gt;%</span></span>
+<span id="annotated-cell-1-15"><a href="#annotated-cell-1-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(species, eventId)) <span class="sc">%&gt;%</span></span>
+<span id="annotated-cell-1-16"><a href="#annotated-cell-1-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="annotated-cell-1-17"><a href="#annotated-cell-1-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_to_rownames</span>(<span class="st">"id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="annotated-cell-1-18"><a href="#annotated-cell-1-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale</span>() <span class="sc">%&gt;%</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="4" onclick="event.preventDefault();" href="">4</a><span id="annotated-cell-1-19" class="code-annotation-target"><a href="#annotated-cell-1-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dist</span>(<span class="at">method=</span><span class="st">"euclidean"</span>)</span>
+<span id="annotated-cell-1-20"><a href="#annotated-cell-1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-21"><a href="#annotated-cell-1-21" aria-hidden="true" tabindex="-1"></a>cl <span class="ot">&lt;-</span> <span class="fu">densityClust</span>(dist)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="5" onclick="event.preventDefault();" href="">5</a><span id="annotated-cell-1-22" class="code-annotation-target"><a href="#annotated-cell-1-22" aria-hidden="true" tabindex="-1"></a>cl <span class="ot">&lt;-</span> <span class="fu">findClusters</span>(cl, <span class="at">rho=</span><span class="dv">25</span>, <span class="at">delta=</span><span class="dv">2</span>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-annotation">
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-1" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-1" data-code-lines="4,5" data-code-annotation="1">Select 200 clicks at random from each species to reduce computational burden</span>
+</dd>
+<dt data-target-cell="annotated-cell-1" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-1" data-code-lines="9,10" data-code-annotation="2">Drop metadata</span>
+</dd>
+<dt data-target-cell="annotated-cell-1" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-1" data-code-lines="11,12" data-code-annotation="3">Drop variables such as <code>peaktopeak2</code>, <code>trough</code>, and others to avoid creating artifacts in the cluster plot.</span>
+</dd>
+<dt data-target-cell="annotated-cell-1" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-1" data-code-lines="19" data-code-annotation="4">Calculate Euclidean distances</span>
+</dd>
+<dt data-target-cell="annotated-cell-1" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-cell="annotated-cell-1" data-code-lines="22" data-code-annotation="5">Select value of <span class="math inline">\(\delta\)</span> and <span class="math inline">\(\rho\)</span>. This affects how many clusters into which the data will be partitioned.</span>
+</dd>
+</dl>
+</div>
+</div>
+<p>Using the above method, the density clustering algorithm formed the clusters shown in <a href="#fig-density-clust" class="quarto-xref">Figure&nbsp;1</a>. The counts of each species in each of the resulting clusters is given in <a href="#tbl-clust-assn" class="quarto-xref">Table&nbsp;1</a>. The MDS plot is shown with the points colored by species in <a href="#fig-mds-species" class="quarto-xref">Figure&nbsp;2</a>.</p>
 <div class="cell">
 <div class="cell-output-display">
-<div id="fig-bins" class="quarto-figure quarto-figure-center anchored" width="672">
+<div id="fig-density-clust" class="quarto-figure quarto-figure-center anchored" width="672">
 <figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-bins-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="index_files/figure-html/fig-bins-1.png" class="img-fluid figure-img" width="672">
+<div aria-describedby="fig-density-clust-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-density-clust-1.png" class="img-fluid figure-img" width="672">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bins-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;1: Faceted by species, you can see that each individual line in this plot follows the distribution of peak frequencies for an individual event.
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-density-clust-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Density clusters with Four clusters formed with ρ=25 and δ=2
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>Once the counts are available for all the events, the dissimilarity index between all events could then be generated using <code>vegan::vegdist()</code>.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#perform binning procedure using "peak" variable</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>pk <span class="ot">&lt;-</span> identidrift<span class="sc">::</span><span class="fu">eventbin</span>(nbhf_clicks, peak)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#generate distance matrix</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>dist <span class="ot">&lt;-</span> vegan<span class="sc">::</span><span class="fu">vegdist</span>(pk, <span class="at">method =</span> <span class="st">"bray"</span>)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#use distance matrix to perform ordination</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>nmds <span class="ot">&lt;-</span> vegan<span class="sc">::</span><span class="fu">metaMDS</span>(dist)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="tbl-clust-assn" class="cell anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-clust-assn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Table of cluster assignments
+</figcaption>
+<div aria-describedby="tbl-clust-assn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-stdout">
+<pre><code>    
+       1   2   3   4
+  ks   2   4   3 191
+  pd 170  10   0  20
+  pp  59 137   0   4</code></pre>
 </div>
-<p>The clusters are then shown in <a href="#fig-event-clusters-1" class="quarto-xref">Figure&nbsp;2 (a)</a>, along with plots that show clusters formed using the same procedure but with respect to different variables.</p>
+</div>
+</figure>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-mds-species" class="quarto-figure quarto-figure-center anchored" width="672">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-mds-species-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-mds-species-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mds-species-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: MDS plot showing distances between clicks in the training set, colored by species
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="discussion" class="level3">
+<h3 class="anchored" data-anchor-id="discussion">Discussion</h3>
+<ul>
+<li>For all species, we see that clicks cluster predominately in a single cluster, with little overlap between different species classes.</li>
+<li>The MDS plot similarly shows that clicks separate from one another on the basis of species class.</li>
+<li>From <a href="#tbl-clust-assn" class="quarto-xref">Table&nbsp;1</a> we see that cluster 3 is very small, containing just three Kogia clicks.
+<ul>
+<li><a href="#tbl-clust-ks" class="quarto-xref">Table&nbsp;2</a> shows that the entirety of cluster 3 is formed from a few anomalous clicks in <em>Kogia</em> event identified as <code>PG2_02_09_CCES_023_Ksp - Copy.OE4</code>.</li>
+<li>That same event, which happens to be the largest <em>Kogia</em> event in the entire training set, has the overwhelming majority of it’s clicks in cluster 4.</li>
+</ul></li>
+</ul>
+<div id="tbl-clust-ks" class="cell anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-clust-ks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Table of cluster assignments for all <em>Kogia</em> events
+</figcaption>
+<div aria-describedby="tbl-clust-ks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-stdout">
+<pre><code>                                   
+                                     1  2  3  4
+  PG2_02_09_CCES_022_Ksp - Copy.OE1  0  0  0  4
+  PG2_02_09_CCES_022_Ksp - Copy.OE2  0  0  0  9
+  PG2_02_09_CCES_022_Ksp - Copy.OE3  0  0  0  9
+  PG2_02_09_CCES_022_Ksp - Copy.OE4  0  0  0 12
+  PG2_02_09_CCES_022_Ksp - Copy.OE5  0  0  0 34
+  PG2_02_09_CCES_022_Ksp - Copy.OE6  0  0  0  3
+  PG2_02_09_CCES_022_Ksp - Copy.OE7  0  0  0 11
+  PG2_02_09_CCES_022_Ksp - Copy.OE8  1  0  0  9
+  PG2_02_09_CCES_023_Ksp - Copy.OE1  0  0  0  7
+  PG2_02_09_CCES_023_Ksp - Copy.OE2  0  0  0  5
+  PG2_02_09_CCES_023_Ksp - Copy.OE3  0  0  0  8
+  PG2_02_09_CCES_023_Ksp - Copy.OE4  1  0  3 46
+  PG2_02_09_CCES_023_Ksp - Copy.OE5  0  0  0  5
+  PG2_02_09_CCES_023_Ksp - Copy.OE6  0  2  0 18
+  PG2_02_09_CCES_023_Ksp - Copy.OE7  0  2  0 11</code></pre>
+</div>
+</div>
+</figure>
+</div>
+</section>
+</section>
+<section id="sec-events" class="level2">
+<h2 class="anchored" data-anchor-id="sec-events">Objective 2</h2>
+<p>We will now subset the training data by species and then re perform density clustering to identify anomalous events.</p>
+<section id="method-1" class="level3">
+<h3 class="anchored" data-anchor-id="method-1">Method</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="annotated-cell-2"><pre class="sourceCode r code-annotation-code code-with-copy code-annotated"><code class="sourceCode r"><span id="annotated-cell-2-1"><a href="#annotated-cell-2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="annotated-cell-2-2"><a href="#annotated-cell-2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-2-3"><a href="#annotated-cell-2-3" aria-hidden="true" tabindex="-1"></a>samp2 <span class="ot">&lt;-</span> nbhf_clicks <span class="sc">%&gt;%</span></span>
+<span id="annotated-cell-2-4"><a href="#annotated-cell-2-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">nest</span>(<span class="at">data=</span><span class="sc">-</span>species) <span class="sc">%&gt;%</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-2" data-target-annotation="1" onclick="event.preventDefault();" href="">1</a><span id="annotated-cell-2-5" class="code-annotation-target"><a href="#annotated-cell-2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">median_ev_n=</span><span class="fu">map_dbl</span>(data,\(d) d <span class="sc">%&gt;%</span> <span class="fu">count</span>(eventId) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(n) <span class="sc">%&gt;%</span> <span class="fu">median</span>())) <span class="sc">%&gt;%</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-2" data-target-annotation="2" onclick="event.preventDefault();" href="">2</a><span id="annotated-cell-2-6" class="code-annotation-target"><a href="#annotated-cell-2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">samp=</span><span class="fu">map2</span>(data, median_ev_n, \(d, s) d <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(eventId) <span class="sc">%&gt;%</span> <span class="fu">slice_sample</span>(<span class="at">n=</span>s) <span class="sc">%&gt;%</span> <span class="fu">ungroup</span>())) <span class="sc">%&gt;%</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-2" data-target-annotation="3" onclick="event.preventDefault();" href="">3</a><span id="annotated-cell-2-7" class="code-annotation-target"><a href="#annotated-cell-2-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">samp=</span><span class="fu">map</span>(samp, \(s) <span class="fu">select</span>(s, eventId, duration<span class="sc">:</span>peak, Q_10dB<span class="sc">:</span>centerkHz_3dB))) <span class="sc">%&gt;%</span></span>
+<span id="annotated-cell-2-8"><a href="#annotated-cell-2-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">samp=</span><span class="fu">map</span>(samp, \(s) s <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">id=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">n</span>()) <span class="sc">%&gt;%</span> <span class="fu">drop_na</span>())) <span class="sc">%&gt;%</span></span>
+<span id="annotated-cell-2-9"><a href="#annotated-cell-2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(species, samp) <span class="sc">%&gt;%</span> </span>
+<span id="annotated-cell-2-10"><a href="#annotated-cell-2-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unnest</span>(samp)</span>
+<span id="annotated-cell-2-11"><a href="#annotated-cell-2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-2-12"><a href="#annotated-cell-2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-2-13"><a href="#annotated-cell-2-13" aria-hidden="true" tabindex="-1"></a>sp <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"ks"</span>, <span class="st">"pd"</span>, <span class="st">"pp"</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-2" data-target-annotation="4" onclick="event.preventDefault();" href="">4</a><span id="annotated-cell-2-14" class="code-annotation-target"><a href="#annotated-cell-2-14" aria-hidden="true" tabindex="-1"></a>clicks <span class="ot">&lt;-</span> <span class="fu">lapply</span>(sp, \(x) <span class="fu">filter</span>(samp2, species<span class="sc">==</span>x))</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-2" data-target-annotation="5" onclick="event.preventDefault();" href="">5</a><span id="annotated-cell-2-15" class="code-annotation-target"><a href="#annotated-cell-2-15" aria-hidden="true" tabindex="-1"></a>dist2 <span class="ot">&lt;-</span> <span class="fu">lapply</span>(clicks, \(c) c <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(species, eventId)) <span class="sc">%&gt;%</span> <span class="fu">column_to_rownames</span>(<span class="st">"id"</span>) <span class="sc">%&gt;%</span> <span class="fu">scale</span>() <span class="sc">%&gt;%</span> <span class="fu">dist</span>())</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-2" data-target-annotation="6" onclick="event.preventDefault();" href="">6</a><span id="annotated-cell-2-16" class="code-annotation-target"><a href="#annotated-cell-2-16" aria-hidden="true" tabindex="-1"></a>cl2 <span class="ot">&lt;-</span> <span class="fu">lapply</span>(dist2, densityClust)</span>
+<span id="annotated-cell-2-17"><a href="#annotated-cell-2-17" aria-hidden="true" tabindex="-1"></a>cl2 <span class="ot">&lt;-</span> <span class="fu">lapply</span>(cl2, findClusters, <span class="at">delta =</span> <span class="dv">8</span>, <span class="at">rho =</span> <span class="dv">5</span>)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-annotation">
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-2" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-2" data-code-lines="5" data-code-annotation="1">Determine the median event <span class="math inline">\(n\)</span> for each species</span>
+</dd>
+<dt data-target-cell="annotated-cell-2" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-2" data-code-lines="6" data-code-annotation="2">For events with <span class="math inline">\(n\)</span> greater than the median, slice a sample in size equal to the median. Since event sizes could vary across several orders of magnitude, this was thought to help reduce over representation of certain events in the cluster plots.</span>
+</dd>
+<dt data-target-cell="annotated-cell-2" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-2" data-code-lines="7" data-code-annotation="3">Select variables of interest, same as in <a href="#sec-species" class="quarto-xref">Section&nbsp;1</a>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-2" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-2" data-code-lines="14" data-code-annotation="4">Subset data by species class</span>
+</dd>
+<dt data-target-cell="annotated-cell-2" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-cell="annotated-cell-2" data-code-lines="15" data-code-annotation="5">Create distance matrices.</span>
+</dd>
+<dt data-target-cell="annotated-cell-2" data-target-annotation="6">6</dt>
+<dd>
+<span data-code-cell="annotated-cell-2" data-code-lines="16,17" data-code-annotation="6">Perform density clustering. Static values chosen for <span class="math inline">\(\rho\)</span> and <span class="math inline">\(\delta\)</span>. This decision does not seem to be critical, because the algorithm strongly favors a single cluster for each species.</span>
+</dd>
+</dl>
+</div>
+</div>
+<p><a href="#fig-event-clusters" class="quarto-xref">Figure&nbsp;3</a> shows the resulting density cluster plots and <a href="#fig-mds-events" class="quarto-xref">Figure&nbsp;4</a> shows the plots with the points colored by event.</p>
 <div class="cell">
 <div id="fig-event-clusters" class="cell quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
@@ -193,7 +347,7 @@ Figure&nbsp;1: Faceted by species, you can see that each individual line in this
 <img src="index_files/figure-html/fig-event-clusters-1.png" class="img-fluid figure-img" data-ref-parent="fig-event-clusters" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-event-clusters-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(a) peak frequency
+(a) <em>Kogia</em>
 </figcaption>
 </figure>
 </div>
@@ -205,7 +359,7 @@ Figure&nbsp;1: Faceted by species, you can see that each individual line in this
 <img src="index_files/figure-html/fig-event-clusters-2.png" class="img-fluid figure-img" data-ref-parent="fig-event-clusters" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-event-clusters-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(b) 3 dB Bandwidth
+(b) Dall’s porpoise
 </figcaption>
 </figure>
 </div>
@@ -217,267 +371,72 @@ Figure&nbsp;1: Faceted by species, you can see that each individual line in this
 <img src="index_files/figure-html/fig-event-clusters-3.png" class="img-fluid figure-img" data-ref-parent="fig-event-clusters" width="672">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-event-clusters-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(c) 3 dB center frequency
+(c) Harbor porpoise
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-event-clusters-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;2: Clusters with respect to different variables where each point represents a different event.
+Figure&nbsp;3: Click clusters for each species class
 </figcaption>
 </figure>
 </div>
 </div>
-<section id="discussion" class="level3">
-<h3 class="anchored" data-anchor-id="discussion">Discussion</h3>
-<ul>
-<li>Events do appear to cluster broadly by class.
-<ul>
-<li>To better visualize the clusters I could plot a centroid and ellipsoid, which I have seen in other plots of this type.</li>
-</ul></li>
-<li>This method is probably sensitive to variability in the sizes of the events, so I wonder how results would change if we implemented rarefaction or other methods to make the sample size consistent across all events being compared.</li>
-<li>The main drawback of this methods seems to be that clusters must be formed based on the distributions in just one dimension. I cannot conceive of how this same procedure could be applied to multi-dimensional data.</li>
-<li>Additionally, this is not necessarily an accepted method of clustering in this field although, in my view, there are many parallels between “events” and “communities”.</li>
-</ul>
-</section>
-</section>
-<section id="cluster-clicks-using-euclidean-distance" class="level2">
-<h2 class="anchored" data-anchor-id="cluster-clicks-using-euclidean-distance">Cluster clicks using Euclidean distance</h2>
-<p>If use clicks as our observational units, then there is no need to devise a procedure or method for handling relationships at the event level.</p>
-<p>The clusters shown in <a href="#fig-mds" class="quarto-xref">Figure&nbsp;3</a> are created by calculating the Euclidean distances between clicks. A few steps were taken to prepare the data:</p>
-<ol type="1">
-<li>An equal number of clicks (200) was sampled from each class to reduce the computational burden since the training set in it’s entirety has over 4,500 clicks.</li>
-<li>I removed some variables in order to eliminate strange artifacts in the MDS plot, which you can see developing in <a href="#fig-mds-2" class="quarto-xref">Figure&nbsp;3 (b)</a>:
-<ul>
-<li>Measurements at 10 dB (min and max freq, center freq, Q, etc.) were omitted in favor of the 3 dB measurements.</li>
-<li>Also, measurements of secondary and tertiary peak frequencies and resulting troughs were also ommited, since not all clicks were the same in this respect.</li>
-</ul></li>
-</ol>
 <div class="cell">
-<div id="fig-mds" class="cell quarto-figure quarto-figure-center anchored">
+<div id="fig-mds-events" class="cell quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-mds-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div aria-describedby="fig-mds-events-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output-display">
-<div id="fig-mds-1" class="quarto-figure quarto-figure-center anchored" width="672">
+<div id="fig-mds-events-1" class="quarto-figure quarto-figure-center anchored" width="672">
 <figure class="quarto-float quarto-subfloat-fig figure">
-<div aria-describedby="fig-mds-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="index_files/figure-html/fig-mds-1.png" class="img-fluid figure-img" data-ref-parent="fig-mds" width="672">
+<div aria-describedby="fig-mds-events-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-mds-events-1.png" class="img-fluid figure-img" data-ref-parent="fig-mds-events" width="672">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-mds-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(a) Redundant variables removed
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-mds-events-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(a) <em>Kogia</em>
 </figcaption>
 </figure>
 </div>
 </div>
 <div class="cell-output-display">
-<div id="fig-mds-2" class="quarto-figure quarto-figure-center anchored" width="672">
+<div id="fig-mds-events-2" class="quarto-figure quarto-figure-center anchored" width="672">
 <figure class="quarto-float quarto-subfloat-fig figure">
-<div aria-describedby="fig-mds-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="index_files/figure-html/fig-mds-2.png" class="img-fluid figure-img" data-ref-parent="fig-mds" width="672">
+<div aria-describedby="fig-mds-events-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-mds-events-2.png" class="img-fluid figure-img" data-ref-parent="fig-mds-events" width="672">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-mds-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(b) No variables removed
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-mds-events-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(b) Dall’s porpoise
+</figcaption>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div id="fig-mds-events-3" class="quarto-figure quarto-figure-center anchored" width="672">
+<figure class="quarto-float quarto-subfloat-fig figure">
+<div aria-describedby="fig-mds-events-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="index_files/figure-html/fig-mds-events-3.png" class="img-fluid figure-img" data-ref-parent="fig-mds-events" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-mds-events-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+(c) Harbor porpoise
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mds-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: Euclidean distances between clicks used for MDS. Species represented by different colors
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mds-events-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: MDS plot showing distances between clicks, colored by event. Legend is hidden due to large number of events in each species class.
 </figcaption>
 </figure>
 </div>
 </div>
+</section>
 <section id="discussion-1" class="level3">
 <h3 class="anchored" data-anchor-id="discussion-1">Discussion</h3>
 <ul>
-<li>The MDS plot reveals broad separation among the species classes, similar to <a href="#fig-event-clusters" class="quarto-xref">Figure&nbsp;2</a>.</li>
-<li>The fact that strange artifacts appear in the plot with all variables included (<a href="#fig-mds-2" class="quarto-xref">Figure&nbsp;3 (b)</a>) is puzzling.
-<ul>
-<li>Does this rationalize the removal of some variables?</li>
-</ul></li>
+<li>The density clustering algorithm appears to strongly favors a single cluster in each species, suggesting that there are no outlying events.</li>
+<li>When points are colored by event, variation among events is more evident. This variation does not appear to be strong enough to manifest as more than one density-based cluster.</li>
 </ul>
-</section>
-</section>
-<section id="cluster-clicks-using-densityclust" class="level2">
-<h2 class="anchored" data-anchor-id="cluster-clicks-using-densityclust">Cluster Clicks using <code>densityClust</code></h2>
-<p>Using the data with reduced variables, the density clustering algorithm formed the clusters shown in <a href="#fig-density-clust" class="quarto-xref">Figure&nbsp;4</a>. The counts of each species in each of the resulting clusters is given in <a href="#tbl-clust-assn" class="quarto-xref">Table&nbsp;1</a>.</p>
-<p>While the value of <span class="math inline">\(\delta\)</span> was kept constant at 1, changing the value of <span class="math inline">\(\rho\)</span> allowed me to partition the data into fewer clusters (<a href="#fig-density-clust-1" class="quarto-xref">Figure&nbsp;4 (a)</a>) or more clusters (<a href="#fig-density-clust-2" class="quarto-xref">Figure&nbsp;4 (b)</a>).</p>
-<div class="cell">
-<div id="fig-density-clust" class="cell quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-density-clust-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output-display">
-<div id="fig-density-clust-1" class="quarto-figure quarto-figure-center anchored" width="672">
-<figure class="quarto-float quarto-subfloat-fig figure">
-<div aria-describedby="fig-density-clust-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="index_files/figure-html/fig-density-clust-1.png" class="img-fluid figure-img" data-ref-parent="fig-density-clust" width="672">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-density-clust-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(a) Four clusters formed with ρ=20 and δ=1
-</figcaption>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div id="fig-density-clust-2" class="quarto-figure quarto-figure-center anchored" width="672">
-<figure class="quarto-float quarto-subfloat-fig figure">
-<div aria-describedby="fig-density-clust-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="index_files/figure-html/fig-density-clust-2.png" class="img-fluid figure-img" data-ref-parent="fig-density-clust" width="672">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-density-clust-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(b) Six clusters formed with ρ=10 and δ=1
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-density-clust-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: Density clusters with different thresholds chosen
-</figcaption>
-</figure>
-</div>
-</div>
-<div id="tbl-clust-assn" class="cell anchored" data-tbl-subcap="[&quot;Cluster plot 1&quot;,&quot;Cluster plot 2&quot;]">
-<figure class="quarto-float quarto-float-tbl figure">
-<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-clust-assn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;1: Table of cluster assignments
-</figcaption>
-<div aria-describedby="tbl-clust-assn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output cell-output-stdout">
-<pre><code>    
-       1   2   3   4
-  ks   4 194   1   1
-  pd  38  24 102  36
-  pp 179  13   6   2</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>    
-       1   2   3   4   5   6
-  ks   4  28   1 124   1  42
-  pd  38   1 102  15  36   8
-  pp 179   1   6   8   2   4</code></pre>
-</div>
-</div>
-</figure>
-</div>
-<section id="discussion-2" class="level3">
-<h3 class="anchored" data-anchor-id="discussion-2">Discussion</h3>
-<ul>
-<li>The picture emerging from this cluster plot is perhaps more nuanced than that given by the previous clustering methods.</li>
-<li>Some interesting patterns emerge when looking at <a href="#tbl-clust-assn" class="quarto-xref">Table&nbsp;1</a>:
-<ul>
-<li>When four clusters are formed, <em>Kogia</em> appears to have a strong affinitiy to cluster 2, and harbor porpoise to cluster 1. Dall’s porpoise has a more even distribution across all four clusters though it is represented in the highest numbers in cluster three.</li>
-<li>When six clusters are formed, <em>Kogia</em> begins to dissolve. About 2/3 of the clicks remain together in a single cluster but the rest get redistributed in separate clusters. Harbor porpoise remains overwhelmingly in cluster 1.</li>
-</ul></li>
-<li>Could some of this nuance be related to variation among individual events within each class?</li>
-<li>What is the optimal number of clusters?</li>
-</ul>
-</section>
-</section>
-<section id="identifying-anomalous-events" class="level2">
-<h2 class="anchored" data-anchor-id="identifying-anomalous-events">Identifying anomalous events</h2>
-<p>Using the four clusters formed in <a href="#fig-density-clust-1" class="quarto-xref">Figure&nbsp;4 (a)</a>, I will explode each species class into the set of all of its events and then take the sum in each cluster. These counts are shown in <a href="#fig-2d-bin" class="quarto-xref">Figure&nbsp;5</a>. The plots are separated by species class.</p>
-<div class="cell">
-<div id="fig-2d-bin" class="cell quarto-figure quarto-figure-center anchored">
-<figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-2d-bin-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output-display">
-<div id="fig-2d-bin-1" class="quarto-figure quarto-figure-center anchored" width="672">
-<figure class="quarto-float quarto-subfloat-fig figure">
-<div aria-describedby="fig-2d-bin-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="index_files/figure-html/fig-2d-bin-1.png" class="img-fluid figure-img" data-ref-parent="fig-2d-bin" width="672">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-2d-bin-1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(a) Harbor porpoise clicks
-</figcaption>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div id="fig-2d-bin-2" class="quarto-figure quarto-figure-center anchored" width="672">
-<figure class="quarto-float quarto-subfloat-fig figure">
-<div aria-describedby="fig-2d-bin-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="index_files/figure-html/fig-2d-bin-2.png" class="img-fluid figure-img" data-ref-parent="fig-2d-bin" width="672">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-2d-bin-2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(b) Dall’s porpoise clicks
-</figcaption>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div id="fig-2d-bin-3" class="quarto-figure quarto-figure-center anchored" width="672">
-<figure class="quarto-float quarto-subfloat-fig figure">
-<div aria-describedby="fig-2d-bin-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="index_files/figure-html/fig-2d-bin-3.png" class="img-fluid figure-img" data-ref-parent="fig-2d-bin" width="672">
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-subfloat-caption quarto-subfloat-fig" id="fig-2d-bin-3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-(c) Kogia clicks
-</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-2d-bin-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;5: Counts of clicks in each cluster, seperated by both event and species
-</figcaption>
-</figure>
-</div>
-</div>
-<section id="discussion-3" class="level3">
-<h3 class="anchored" data-anchor-id="discussion-3">Discussion</h3>
-<ul>
-<li>For both <em>Kogia</em> and harbor porpoise, we see that clicks cluster predominately in a single cluster, 2 and 1, respectively.</li>
-<li>In these classes, we do not see evidence of anomalous events because, for the most part, the plots show an unbroken top-down chain. This means that all events contribute clicks into the dominant cluster.
-<ul>
-<li>While there are some clicks assigned to other clusters, within these same events there are also clicks that are assigned to the dominant cluster.</li>
-</ul></li>
-<li>Dall’s porpoise events are more scattered across the clusters. The presence of disjoint line segments that are neither vertically or horizontally overlapping suggests that the events may split into several smaller clusters.</li>
-</ul>
-</section>
-<section id="follow-up" class="level3">
-<h3 class="anchored" data-anchor-id="follow-up">Follow-up</h3>
-<p>As an addendum, here are the clusters formed for the Dall’s porpoise class. The density plot suggests that algorithm strongly favors a solution of one cluster.</p>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Distance cutoff calculated to 0.3985233 </code></pre>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/unnamed-chunk-13-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>                                    
-                                      1  2  3
-  Bangarang_Dalls - Copy.OE1         35  1  1
-  Bangarang_Dalls - Copy.OE2          9  4  0
-  Bangarang_Dalls - Copy.OE3         15  4  1
-  Bangarang_Dalls - Copy.OE4          6  0  0
-  CalCURSeas_Dalls - Copy.OE1        25  0  0
-  CalCURSeas_Dalls - Copy.OE2         7  0  0
-  CalCURSeas_Dalls - Copy.OE3        14  0  0
-  CalCURSeas_Dalls - Copy.OE4         0  0  7
-  CalCURSeas_Dalls - Copy.OE5         9  9  0
-  CalCURSeas_Dalls - Copy.OE6         6  0  7
-  PASCAL_Dalls_TowedArray - Copy.OE1 24  0  3
-  PASCAL_Dalls_TowedArray - Copy.OE2  0  0  3
-  PASCAL_Dalls_TowedArray - Copy.OE3  1  1  0
-  PASCAL_Dalls_TowedArray - Copy.OE4  5  1  1
-  PASCAL_Dalls_TowedArray - Copy.OE5  2  2  4</code></pre>
-</div>
-</div>
 </section>
 </section>
 
