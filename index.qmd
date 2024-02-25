@@ -1,7 +1,7 @@
 ---
-title: "Check Up on NBHF Clusters"
-author: Jackson VB
-date: 02/16/2024
+title: "NBHF Clusters: Streamlined Results"
+author: Jackson Vanfleet-Brown
+date: 02/25/2024
 editor: source
 echo: false
 toc: true
@@ -11,292 +11,183 @@ toc: true
 
 We want to identify clusters within our training set before we make our classifier learn from it. There are two objectives for unsupervised clustering:
 
-1. Look across species to identify whether species classes form separate clusters.
+1. Look across species to identify whether species classes form separate clusters (@sec-species).
     - The existence of clusters suggests that there are meaningful differences between classes that the classifier can be trained to recognize.
-2. Look within species classes to assess variability among events.
+2. Look within species classes to assess variability among events (@sec-events).
     -  The existence of clusters within an individual species class may indicate that there are outlying events with anomalous features that should be excluded from the training set.
-
-In pursuing these objectives, we might also want to consider which observational unit we'd like to use -- **click** or **event**? And would this change depending on which objective we are pursuing?
 
 ```{r}
 #| output: false
 
-library(identidrift) # package with my thesis data. On GitHub, "jackvfb/identidrift"
+library(identidrift) # package with training data. On GitHub, "jackvfb/identidrift"
 library(tidyverse)
 library(vegan)
 library(densityClust)
-set.seed(3150)
 ```
+## Objective 1 {#sec-species}
 
-## Cluster events using community dissimilarity index
-
-Ecological communities are compared to one another by counting the different species that appear in each community and then generating a dissimilarity index using a method such as the Bray-Curtis dissimilarity.
-
-To turn acoustic events into "communities," I choose a variable to use for comparison, then binned the clicks based on their values. For example, if I wanted to compare events on the basis of peak frequency, I would then subdivide the region of the acoustic spectrum from 100-160 kHz to form bins of a chosen width, e.g. 1 kHz. Then, for every event, I would count clicks in each bin (see @fig-bins for an illustration of the resulting distributions)
-
-```{r}
-#| label: fig-bins
-#| fig-cap: "Faceted by species, you can see that each individual line in this plot follows the distribution of peak frequencies for an individual event."
-#| echo: false
-#| 
-nbhf_clicks %>%
-  ggplot(aes(x=peak, color=species, by=eventId))+
-  geom_freqpoly(binwidth=1) +
-  facet_wrap(~species, ncol=1, scale="free")
-```
-
-Once the counts are available for all the events, the dissimilarity index between all events could then be generated using `vegan::vegdist()`.
-
-```{r}
-#| results: hide
-#| echo: true
-
-#perform binning procedure using "peak" variable
-pk <- identidrift::eventbin(nbhf_clicks, peak)
-
-#generate distance matrix
-dist <- vegan::vegdist(pk, method = "bray")
-
-#use distance matrix to perform ordination
-nmds <- vegan::metaMDS(dist)
-```
-
-```{r}
-clust <- function(mat, title){
-  dist <- vegdist(mat, method = "bray")
-  nmds <- metaMDS(dist)
-  scores(nmds) %>%
-    as_tibble(rownames = "eventId") %>%
-    left_join(select(nbhf_clicks, species, eventId, eventLabel), by="eventId") %>% 
-    ggplot(aes(x = NMDS1, y = NMDS2, color=species))+
-    geom_point()+
-    # facet_wrap(~eventLabel) +
-    ggtitle(title)
-}
-```
-
-The clusters are then shown in @fig-event-clusters-1, along with plots that show clusters formed using the same procedure but with respect to different variables.
-
-```{r}
-#| label: fig-event-clusters
-#| results: false
-#| fig-cap: "Clusters with respect to different variables where each point represents a different event."
-#| fig-subcap:
-#|   - "peak frequency"
-#|   - "3 dB Bandwidth"
-#|   - "3 dB center frequency"
-
-scores(nmds) %>%
-    as_tibble(rownames = "eventId") %>%
-    left_join(select(nbhf_clicks, species, eventId, eventLabel), by="eventId") %>% 
-    ggplot(aes(x = NMDS1, y = NMDS2, color=species))+
-    geom_point()+
-    # facet_wrap(~eventLabel) +
-    ggtitle("peak")
-
-bw <- eventbin(nbhf_clicks, BW_3dB)
-ctr <- eventbin(nbhf_clicks, centerkHz_3dB)
-clust(bw, "bandwidth 3dB")
-clust(ctr, "centerfreq 3dB")
-```
-
-### Discussion
-
-- Events do appear to cluster broadly by class.
-    - To better visualize the clusters I could plot a centroid and ellipsoid, which I have seen in other plots of this type.
-- This method is probably sensitive to variability in the sizes of the events, so I wonder how results would change if we implemented rarefaction or other methods to make the sample size consistent across all events being compared.
-- The main drawback of this methods seems to be that clusters must be formed based on the distributions in just one dimension. I cannot conceive of how this same procedure could be applied to multi-dimensional data.
-- Additionally, this is not necessarily an accepted method of clustering in this field although, in my view, there are many parallels between "events" and "communities".
-
-## Cluster clicks using Euclidean distance
-
-If use clicks as our observational units, then there is no need to devise a procedure or method for handling relationships at the event level.
-
-The clusters shown in @fig-mds are created by calculating the Euclidean distances between clicks. A few steps were taken to prepare the data:
-
-1. An equal number of clicks (200) was sampled from each class to reduce the computational burden since the training set in it's entirety has over 4,500 clicks.
-2. I removed some variables in order to eliminate strange artifacts in the MDS plot, which you can see developing in @fig-mds-2:
-    - Measurements at 10 dB (min and max freq, center freq, Q, etc.) were omitted in favor of the 3 dB measurements.
-    - Also, measurements of secondary and tertiary peak frequencies and resulting troughs were also ommited, since not all clicks were the same in this respect.
-
-```{r}
-#sample to reduce computational burden
-samp <- nbhf_clicks %>% 
-  group_by(species) %>% 
-  slice_sample(n=200) %>% # select 200 clicks at random from each species
-  ungroup() %>% 
-  select(-c(UID:noiseLevel, BinaryFile, eventLabel, detectorName, db)) %>% 
-  mutate(id = 1:n()) %>%
-  filter(complete.cases(.))
-
-# create copy of sample data with some variables removed
-samp_drop <- samp %>% 
-  select(id, species, eventId, duration:peak, Q_3dB:centerkHz_3dB)
-
-# define function to perform MDS
-doMDS <- function(x) {
- 
-   x.dist <- x %>%
-    select(-c(species, eventId)) %>%
-    column_to_rownames("id") %>%
-    scale() %>% # important step is to scale
-    dist(method="euclidean")
-  
-  x.mds <- x.dist %>%
-    cmdscale(k=4) %>% # Use max four dimensions
-    as.data.frame %>%
-    setNames(paste0("PC", 1:ncol(.))) %>%
-    mutate(species = x$species, eventId = x$eventId)
-  
-  return(x.mds)
-}
-
-#perform MDS on each data set, with and without redundant variables
-drop <- doMDS(samp_drop)
-not_drop <- doMDS(samp)
-```
-
-```{r}
-#| label: fig-mds
-#| fig-cap: "Euclidean distances between clicks used for MDS. Species represented by different colors"
-#| fig-subcap:
-#|   - "Redundant variables removed"
-#|   - "No variables removed"
-
-drop %>%
-  ggplot(aes(PC1, PC2, color=species)) +
-  geom_point()
-
-not_drop %>%
-  ggplot(aes(PC1, PC2, color=species)) +
-  geom_point()
-
-```
-
-### Discussion
-
-- The MDS plot reveals broad separation among the species classes, similar to @fig-event-clusters.
-- The fact that strange artifacts appear in the plot with all variables included (@fig-mds-2) is puzzling.
-    - Does this rationalize the removal of some variables?
-
-## Cluster Clicks using `densityClust`
+### Method
 
 ```{r}
 #| output: false
-dist <- samp_drop %>%
+#| echo: true
+
+set.seed(123)
+
+samp <- nbhf_clicks %>% 
+  group_by(species) %>% # <1>
+  slice_sample(n=200) %>% # <1>
+  ungroup()
+
+samp_rm <- samp %>% 
+  select(-c(UID:noiseLevel, BinaryFile, eventLabel, # <2>
+            detectorName, db)) %>% # <2>
+  select(species, eventId, duration:peak, # <3>
+         Q_10dB:centerkHz_3dB) # <3>
+
+dist <- samp_rm %>%
   select(-c(species, eventId)) %>%
+  mutate(id = 1:n()) %>%
   column_to_rownames("id") %>%
   scale() %>%
-  dist(method="euclidean")
+  dist(method="euclidean") # <4>
 
 cl <- densityClust(dist)
-cl1 <- findClusters(cl, rho=20, delta=1)
-cl2 <- findClusters(cl, rho=10, delta=1)
+cl <- findClusters(cl, rho=25, delta=2) # <5>
 ```
+1. Select 200 clicks at random from each species to reduce computational burden
+2. Drop metadata
+3. Drop variables such as `peaktopeak2`, `trough`, and others to avoid creating artifacts in the cluster plot.
+4. Calculate Euclidean distances
+5. Select value of $\delta$ and $\rho$. This affects how many clusters into which the data will be partitioned.
 
-Using the data with reduced variables, the density clustering algorithm formed the clusters shown in @fig-density-clust. The counts of each species in each of the resulting clusters is given in @tbl-clust-assn.
-
-While the value of $\delta$ was kept constant at 1, changing the value of $\rho$ allowed me to partition the data into fewer clusters (@fig-density-clust-1) or more clusters (@fig-density-clust-2).
-
+Using the above method, the density clustering algorithm formed the clusters shown in @fig-density-clust. The counts of each species in each of the resulting clusters is given in @tbl-clust-assn. The MDS plot is shown with the points colored by species in @fig-mds-species.
 
 ```{r}
 #| label: fig-density-clust
-#| fig-cap: "Density clusters with different thresholds chosen"
-#| fig-subcap: 
-#|     - "Four clusters formed with \u03c1=20 and \u03B4=1"
-#|     - "Six clusters formed with \u03c1=10 and \u03B4=1"
-plotDensityClust(cl1)
-plotDensityClust(cl2)
+#| fig-cap: "Density clusters with Four clusters formed with \u03c1=25 and \u03B4=2"
+
+plotDensityClust(cl)
 ```
 
 ```{r}
 #| label: tbl-clust-assn
 #| tbl-cap: "Table of cluster assignments"
-#| tbl-subcap: 
-#|     - "Cluster plot 1"
-#|     - "Cluster plot 2"
-#|     
-table(samp_drop$species, cl1$clusters)
-table(samp_drop$species, cl2$clusters)
+
+table(samp_rm$species, cl$clusters)
 ```
+
+```{r}
+#| label: fig-mds-species
+#| warning: false
+#| fig-cap: "MDS plot showing distances between clicks in the training set, colored by species"
+
+mds <- as_tibble(cmdscale(dist))
+mds <- cbind(mds, "species" = samp_rm$species)
+
+ggplot(data = mds) +
+  geom_point(aes(V1, V2, color = species)) +
+  xlab("Dimension 1") +
+  ylab("Dimension 2")
+```
+
 
 ### Discussion
 
-- The picture emerging from this cluster plot is perhaps more nuanced than that given by the previous clustering methods.
-- Some interesting patterns emerge when looking at @tbl-clust-assn:
-    - When four clusters are formed, *Kogia* appears to have a strong affinitiy to cluster 2, and harbor porpoise to cluster 1. Dall's porpoise has a more even distribution across all four clusters though it is represented in the highest numbers in cluster three.
-    - When six clusters are formed, *Kogia* begins to dissolve. About 2/3 of the clicks remain together in a single cluster but the rest get redistributed in separate clusters. Harbor porpoise remains overwhelmingly in cluster 1.
-- Could some of this nuance be related to variation among individual events within each class?
-- What is the optimal number of clusters?
-
-## Identifying anomalous events
-
-Using the four clusters formed in @fig-density-clust-1, I will explode each species class into the set of all of its events and then take the sum in each cluster. These counts are shown in @fig-2d-bin. The plots are separated by species class.
+- For all species, we see that clicks cluster predominately in a single cluster, with little overlap between different species classes.
+- The MDS plot similarly shows that clicks separate from one another on the basis of species class.
+- From @tbl-clust-assn we see that cluster 3 is very small, containing just three Kogia clicks.
+    - @tbl-clust-ks shows that the entirety of cluster 3 is formed from a few anomalous clicks in *Kogia* event identified as `PG2_02_09_CCES_023_Ksp - Copy.OE4`.
+    - That same event, which happens to be the largest *Kogia* event in the entire training set, has the overwhelming majority of it's clicks in cluster 4.
 
 ```{r}
-clusters_to_df <- function(x){
-  df <- data.frame(species = samp_drop$species,
-                   eventId = samp_drop$eventId,
-                   cluster = x$clusters)
+#| label: tbl-clust-ks
+#| tbl-cap: "Table of cluster assignments for all *Kogia* events"
+#| 
+df <- data.frame("species" = samp_rm$species,
+           "eventId" = samp_rm$eventId,
+           "cluster" = cl$clusters) %>%
+  filter(species=="ks")
+
+table(df$eventId, df$cluster)
+```
+
+## Objective 2 {#sec-events}
+
+We will now subset the training data by species and then re perform density clustering to identify anomalous events.
+
+### Method
+
+```{r}
+#| echo: true
+#| output: false
+
+set.seed(123)
+
+samp2 <- nbhf_clicks %>%
+  nest(data=-species) %>%
+  mutate(median_ev_n=map_dbl(data,\(d) d %>% count(eventId) %>% pull(n) %>% median())) %>% # <1>
+  mutate(samp=map2(data, median_ev_n, \(d, s) d %>% group_by(eventId) %>% slice_sample(n=s) %>% ungroup())) %>% # <2>
+  mutate(samp=map(samp, \(s) select(s, eventId, duration:peak, Q_10dB:centerkHz_3dB))) %>% # <3>
+  mutate(samp=map(samp, \(s) s %>% mutate(id=1:n()) %>% drop_na())) %>%
+  select(species, samp) %>% 
+  unnest(samp)
+
+
+sp <- c("ks", "pd", "pp")
+clicks <- lapply(sp, \(x) filter(samp2, species==x)) # <4>
+dist2 <- lapply(clicks, \(c) c %>% select(-c(species, eventId)) %>% column_to_rownames("id") %>% scale() %>% dist()) # <5>
+cl2 <- lapply(dist2, densityClust) #<6>
+cl2 <- lapply(cl2, findClusters, delta = 8, rho = 5) #<6>
+```
+
+1. Determine the median event $n$ for each species
+2. For events with $n$ greater than the median, slice a sample in size equal to the median. Since event sizes could vary across several orders of magnitude, this was thought to help reduce over representation of certain events in the cluster plots.
+3. Select variables of interest, same as in @sec-species.
+4. Subset data by species class
+5. Create distance matrices.
+6. Perform density clustering. Static values chosen for $\rho$ and $\delta$. This decision does not seem to be critical, because the algorithm strongly favors a single cluster for each species.
+
+@fig-event-clusters shows the resulting density cluster plots and @fig-mds-events shows the plots with the points colored by event.
+
+```{r}
+#| label: fig-event-clusters
+#| fig-cap: "Click clusters for each species class"
+#| fig-subcap:
+#|     - "*Kogia*"
+#|     - "Dall's porpoise"
+#|     - "Harbor porpoise"
+
+plotDensityClust(cl2[[1]])
+plotDensityClust(cl2[[2]])
+plotDensityClust(cl2[[3]])
+```
+
+```{r}
+#| label: fig-mds-events
+#| fig-cap: "MDS plot showing distances between clicks, colored by event. Legend is hidden due to large number of events in each species class."
+#| fig-subcap:
+#|     - "*Kogia*"
+#|     - "Dall's porpoise"
+#|     - "Harbor porpoise"
+#| 
+
+mds2 <- lapply(dist2, function(x) {as_tibble(cmdscale(x))})
+mds2 <- map2(mds2, clicks, function(x, y) {cbind(x, "eventId" = y$eventId)})
+
+makePlot <- function(x) {
+  ggplot(data = x) +
+    geom_point(aes(V1, V2, color = eventId), show.legend = FALSE) +
+    xlab("Dimension 1") +
+    ylab("Dimension 2")
 }
 
-x <- clusters_to_df(cl1)
-
-plots <- x %>%
-  nest(d = -species) %>%
-  mutate(p = map(d, \(data) ggplot(data) + geom_bin2d(aes(x=cluster, y=eventId))))
-```
-
-
-```{r}
-#| label: fig-2d-bin
-#| fig-cap: "Counts of clicks in each cluster, seperated by both event and species"
-#| fig-subcap: 
-#|     - "Harbor porpoise clicks"
-#|     - "Dall's porpoise clicks"
-#|     - "Kogia clicks"
-
-plots$p[[3]]
-plots$p[[2]]
-plots$p[[1]]
+makePlot(mds2[[1]])
+makePlot(mds2[[2]])
+makePlot(mds2[[3]])
 ```
 
 ### Discussion
 
-- For both *Kogia* and harbor porpoise, we see that clicks cluster predominately in a single cluster, 2 and 1, respectively.
-- In these classes, we do not see evidence of anomalous events because, for the most part, the plots show an unbroken top-down chain. This means that all events contribute clicks into the dominant cluster.
-    - While there are some clicks assigned to other clusters, within these same events there are also clicks that are assigned to the dominant cluster.
-- Dall's porpoise events are more scattered across the clusters. The presence of disjoint line segments that are neither vertically or horizontally overlapping suggests that the events may split into several smaller clusters.
-
-### Follow-up
-
-As an addendum, here are the clusters formed for the Dall's porpoise class. The density plot suggests that algorithm strongly favors a solution of one cluster.
-```{r}
-samp.pd <- nbhf_clicks %>% 
-  filter(species=="pd") %>%
-  select(species, eventId, duration:peak, Q_3dB:centerkHz_3dB) %>%
-  filter(complete.cases(.)) %>%
-  mutate(id = 1:n())
-
-dist.pd <- samp.pd %>%
-  select(-c(species, eventId)) %>%
-  column_to_rownames("id") %>%
-  scale() %>%
-  dist(method="euclidean")
-
-mds.pd <- dist.pd %>%
-    cmdscale(k=4) %>% # Use max four dimensions
-    as.data.frame %>%
-    setNames(paste0("PC", 1:ncol(.))) %>%
-    mutate(eventId = samp.pd$eventId)
-
-mds.pd %>%
-  ggplot(aes(PC1, PC2, color=eventId))+
-  geom_point()
-
-cl.pd <- densityClust(dist.pd)
-cl.pd <- findClusters(cl.pd, rho=2, delta=1)
-plotDensityClust(cl.pd)
-
-table(samp.pd$eventId, cl.pd$clusters)
-```
+- The density clustering algorithm appears to strongly favors a single cluster in each species, suggesting that there are no outlying events.
+- When points are colored by event, variation among events is more evident. This variation does not appear to be strong enough to manifest as more than one density-based cluster.
