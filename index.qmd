@@ -3,8 +3,6 @@ title: "NBHF Clusters: Streamlined Results"
 author: Jackson Vanfleet-Brown
 date: 02/25/2024
 editor: source
-echo: false
-toc: true
 ---
 
 ## Intro {.unnumbered}

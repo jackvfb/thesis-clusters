@@ -1,2 +1,10 @@
+format:
+  html:
+    echo: false
+    toc: true
+  docx: 
+    echo: false
+    toc: false
+  
 project:
   output-dir: docs
