@@ -32,33 +32,30 @@ library(densityClust)
 
 set.seed(123)
 
+# slice sample of 200 clicks from each species
 samp <- nbhf_clicks %>% 
-  group_by(species) %>% # <1>
-  slice_sample(n=200) %>% # <1>
+  group_by(species) %>%
+  slice_sample(n=200) %>%
   ungroup()
 
 samp_rm <- samp %>% 
-  select(-c(UID:noiseLevel, BinaryFile, eventLabel, # <2>
-            detectorName, db)) %>% # <2>
-  select(species, eventId, duration:peak, # <3>
-         Q_10dB:centerkHz_3dB) # <3>
+  # drop metadata
+  select(-c(UID:noiseLevel, BinaryFile, eventLabel,detectorName, db)) %>% 
+  # drop variables to avoid creating artifacts in the cluster plot.
+  select(species, eventId, duration:peak, Q_10dB:centerkHz_3dB)
 
+# calculate Euclidean distances
 dist <- samp_rm %>%
   select(-c(species, eventId)) %>%
   mutate(id = 1:n()) %>%
   column_to_rownames("id") %>%
   scale() %>%
-  dist(method="euclidean") # <4>
+  dist(method="euclidean")
 
 cl <- densityClust(dist)
-cl <- findClusters(cl, rho=25, delta=2) # <5>
+# set rho and delta values
+cl <- findClusters(cl, rho=25, delta=2)
 ```
-1. Select 200 clicks at random from each species to reduce computational burden
-2. Drop metadata
-3. Drop variables such as `peaktopeak2`, `trough`, and others to avoid creating artifacts in the cluster plot.
-4. Calculate Euclidean distances
-5. Select value of $\delta$ and $\rho$. This affects how many clusters into which the data will be partitioned.
-
 Using the above method, the density clustering algorithm formed the clusters shown in @fig-density-clust. The counts of each species in each of the resulting clusters is given in @tbl-clust-assn. The MDS plot is shown with the points colored by species in @fig-mds-species.
 
 ```{r}
@@ -124,27 +121,28 @@ set.seed(123)
 
 samp2 <- nbhf_clicks %>%
   nest(data=-species) %>%
-  mutate(median_ev_n=map_dbl(data,\(d) d %>% count(eventId) %>% pull(n) %>% median())) %>% # <1>
-  mutate(samp=map2(data, median_ev_n, \(d, s) d %>% group_by(eventId) %>% slice_sample(n=s) %>% ungroup())) %>% # <2>
-  mutate(samp=map(samp, \(s) select(s, eventId, duration:peak, Q_10dB:centerkHz_3dB))) %>% # <3>
+  # determine the median event n for each species
+  mutate(median_ev_n=map_dbl(data,\(d) d %>% count(eventId) %>% pull(n) %>% median())) %>%
+  # for events with n greater than the median, slice a sample in size equal to the median
+  # since n varies across two orders of magnitude, intended to balance representation in the plot
+  mutate(samp=map2(data, median_ev_n, \(d, s) d %>% group_by(eventId) %>% slice_sample(n=s) %>% ungroup())) %>%
+  # select variables of interest
+  mutate(samp=map(samp, \(s) select(s, eventId, duration:peak, Q_10dB:centerkHz_3dB))) %>%
   mutate(samp=map(samp, \(s) s %>% mutate(id=1:n()) %>% drop_na())) %>%
   select(species, samp) %>% 
   unnest(samp)
 
 
 sp <- c("ks", "pd", "pp")
-clicks <- lapply(sp, \(x) filter(samp2, species==x)) # <4>
-dist2 <- lapply(clicks, \(c) c %>% select(-c(species, eventId)) %>% column_to_rownames("id") %>% scale() %>% dist()) # <5>
-cl2 <- lapply(dist2, densityClust) #<6>
-cl2 <- lapply(cl2, findClusters, delta = 8, rho = 5) #<6>
+# subset data by species
+clicks <- lapply(sp, \(x) filter(samp2, species==x))
+# create distance matrices.
+dist2 <- lapply(clicks, \(c) c %>% select(-c(species, eventId)) %>% column_to_rownames("id") %>% scale() %>% dist())
+cl2 <- lapply(dist2, densityClust)
+# Perform density clustering. Static values chosen for rho and delta.
+# This decision does not seem to be critical, because the algorithm strongly favors a single cluster for each species.
+cl2 <- lapply(cl2, findClusters, delta = 8, rho = 5)
 ```
-
-1. Determine the median event $n$ for each species
-2. For events with $n$ greater than the median, slice a sample in size equal to the median. Since event sizes could vary across several orders of magnitude, this was thought to help reduce over representation of certain events in the cluster plots.
-3. Select variables of interest, same as in @sec-species.
-4. Subset data by species class
-5. Create distance matrices.
-6. Perform density clustering. Static values chosen for $\rho$ and $\delta$. This decision does not seem to be critical, because the algorithm strongly favors a single cluster for each species.
 
 @fig-event-clusters shows the resulting density cluster plots and @fig-mds-events shows the plots with the points colored by event.
 
