@@ -150,28 +150,30 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># slice sample of 200 clicks from each species</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>samp <span class="ot">&lt;-</span> nbhf_clicks <span class="sc">%&gt;%</span> </span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>samp <span class="ot">&lt;-</span> train.ec <span class="sc">%&gt;%</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(species) <span class="sc">%&gt;%</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_sample</span>(<span class="at">n=</span><span class="dv">200</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_sample</span>(<span class="at">n=</span><span class="dv">120</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>samp_rm <span class="ot">&lt;-</span> samp <span class="sc">%&gt;%</span> </span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># drop metadata</span></span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(UID<span class="sc">:</span>noiseLevel, BinaryFile, eventLabel,detectorName, db)) <span class="sc">%&gt;%</span> </span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># drop variables to avoid creating artifacts in the cluster plot.</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(species, eventId, duration<span class="sc">:</span>peak, Q_10dB<span class="sc">:</span>centerkHz_3dB)</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate Euclidean distances</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>dist <span class="ot">&lt;-</span> samp_rm <span class="sc">%&gt;%</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(species, eventId)) <span class="sc">%&gt;%</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_to_rownames</span>(<span class="st">"id"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale</span>() <span class="sc">%&gt;%</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dist</span>(<span class="at">method=</span><span class="st">"euclidean"</span>)</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>cl <span class="ot">&lt;-</span> <span class="fu">densityClust</span>(dist)</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co"># set rho and delta values</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>cl <span class="ot">&lt;-</span> <span class="fu">findClusters</span>(cl, <span class="at">rho=</span><span class="dv">25</span>, <span class="at">delta=</span><span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(species, eventId, duration<span class="sc">:</span>peak, Q_10dB<span class="sc">:</span>centerkHz_3dB) <span class="sc">%&gt;%</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># perform logarithmic transform for non-normally distributed variables</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log_duration =</span> <span class="fu">log</span>(duration), <span class="at">log_Q_3dB =</span> <span class="fu">log</span>(Q_3dB), <span class="at">log_Q_10dB =</span> <span class="fu">log</span>(Q_10dB), <span class="at">.keep =</span> <span class="st">"unused"</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co"># calculate Euclidean distances</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>dist <span class="ot">&lt;-</span> samp_rm <span class="sc">%&gt;%</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(species, eventId)) <span class="sc">%&gt;%</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">n</span>()) <span class="sc">%&gt;%</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">column_to_rownames</span>(<span class="st">"id"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dist</span>(<span class="at">method=</span><span class="st">"euclidean"</span>)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>cl <span class="ot">&lt;-</span> <span class="fu">densityClust</span>(dist)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co"># set rho and delta values</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>cl <span class="ot">&lt;-</span> <span class="fu">findClusters</span>(cl, <span class="at">rho=</span><span class="dv">10</span>, <span class="at">delta=</span><span class="fl">2.5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Using the above method, the density clustering algorithm formed the clusters shown in <a href="#fig-density-clust" class="quarto-xref">Figure&nbsp;1</a>. The counts of each species in each of the resulting clusters is given in <a href="#tbl-clust-assn" class="quarto-xref">Table&nbsp;1</a>. The MDS plot is shown with the points colored by species in <a href="#fig-mds-species" class="quarto-xref">Figure&nbsp;2</a>.</p>
 <div class="cell">
@@ -196,10 +198,10 @@ Table&nbsp;1: Table of cluster assignments
 <div aria-describedby="tbl-clust-assn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <div class="cell-output cell-output-stdout">
 <pre><code>    
-       1   2   3   4
-  ks   2   4   3 191
-  pd 170  10   0  20
-  pp  59 137   0   4</code></pre>
+       1   2   3
+  ks   6 111   3
+  pd  86  22  12
+  pp  18   6  96</code></pre>
 </div>
 </div>
 </figure>
@@ -222,42 +224,14 @@ Figure&nbsp;2: MDS plot showing distances between clicks in the training set, co
 <section id="discussion" class="level3">
 <h3 class="anchored" data-anchor-id="discussion">Discussion</h3>
 <ul>
-<li>For all species, we see that clicks cluster predominately in a single cluster, with little overlap between different species classes.</li>
-<li>The MDS plot similarly shows that clicks separate from one another on the basis of species class.</li>
-<li>From <a href="#tbl-clust-assn" class="quarto-xref">Table&nbsp;1</a> we see that cluster 3 is very small, containing just three Kogia clicks.
+<li>Each of the three clusters appears to be dominated by a different species class:
 <ul>
-<li><a href="#tbl-clust-ks" class="quarto-xref">Table&nbsp;2</a> shows that the entirety of cluster 3 is formed from a few anomalous clicks in <em>Kogia</em> event identified as <code>PG2_02_09_CCES_023_Ksp - Copy.OE4</code>.</li>
-<li>That same event, which happens to be the largest <em>Kogia</em> event in the entire training set, has the overwhelming majority of it’s clicks in cluster 4.</li>
+<li>Cluster 1: Dall’s porpoise</li>
+<li>Cluster 2: <em>Kogia</em></li>
+<li>Cluster 3: harbor porpoise</li>
 </ul></li>
+<li>The MDS plot similarly shows that clicks separate into three different clusters by species class.</li>
 </ul>
-<div id="tbl-clust-ks" class="cell anchored">
-<figure class="quarto-float quarto-float-tbl figure">
-<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-clust-ks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;2: Table of cluster assignments for all <em>Kogia</em> events
-</figcaption>
-<div aria-describedby="tbl-clust-ks-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<div class="cell-output cell-output-stdout">
-<pre><code>                                   
-                                     1  2  3  4
-  PG2_02_09_CCES_022_Ksp - Copy.OE1  0  0  0  4
-  PG2_02_09_CCES_022_Ksp - Copy.OE2  0  0  0  9
-  PG2_02_09_CCES_022_Ksp - Copy.OE3  0  0  0  9
-  PG2_02_09_CCES_022_Ksp - Copy.OE4  0  0  0 12
-  PG2_02_09_CCES_022_Ksp - Copy.OE5  0  0  0 34
-  PG2_02_09_CCES_022_Ksp - Copy.OE6  0  0  0  3
-  PG2_02_09_CCES_022_Ksp - Copy.OE7  0  0  0 11
-  PG2_02_09_CCES_022_Ksp - Copy.OE8  1  0  0  9
-  PG2_02_09_CCES_023_Ksp - Copy.OE1  0  0  0  7
-  PG2_02_09_CCES_023_Ksp - Copy.OE2  0  0  0  5
-  PG2_02_09_CCES_023_Ksp - Copy.OE3  0  0  0  8
-  PG2_02_09_CCES_023_Ksp - Copy.OE4  1  0  3 46
-  PG2_02_09_CCES_023_Ksp - Copy.OE5  0  0  0  5
-  PG2_02_09_CCES_023_Ksp - Copy.OE6  0  2  0 18
-  PG2_02_09_CCES_023_Ksp - Copy.OE7  0  2  0 11</code></pre>
-</div>
-</div>
-</figure>
-</div>
 </section>
 </section>
 <section id="sec-events" class="level2">
@@ -266,31 +240,26 @@ Table&nbsp;2: Table of cluster assignments for all <em>Kogia</em> events
 <section id="method-1" class="level3">
 <h3 class="anchored" data-anchor-id="method-1">Method</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>samp2 <span class="ot">&lt;-</span> nbhf_clicks <span class="sc">%&gt;%</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">nest</span>(<span class="at">data=</span><span class="sc">-</span>species) <span class="sc">%&gt;%</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># determine the median event n for each species</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">median_ev_n=</span><span class="fu">map_dbl</span>(data,\(d) d <span class="sc">%&gt;%</span> <span class="fu">count</span>(eventId) <span class="sc">%&gt;%</span> <span class="fu">pull</span>(n) <span class="sc">%&gt;%</span> <span class="fu">median</span>())) <span class="sc">%&gt;%</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># for events with n greater than the median, slice a sample in size equal to the median</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># since n varies across two orders of magnitude, intended to balance representation in the plot</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">samp=</span><span class="fu">map2</span>(data, median_ev_n, \(d, s) d <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(eventId) <span class="sc">%&gt;%</span> <span class="fu">slice_sample</span>(<span class="at">n=</span>s) <span class="sc">%&gt;%</span> <span class="fu">ungroup</span>())) <span class="sc">%&gt;%</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># select variables of interest</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">samp=</span><span class="fu">map</span>(samp, \(s) <span class="fu">select</span>(s, eventId, duration<span class="sc">:</span>peak, Q_10dB<span class="sc">:</span>centerkHz_3dB))) <span class="sc">%&gt;%</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">samp=</span><span class="fu">map</span>(samp, \(s) s <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">id=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">n</span>()) <span class="sc">%&gt;%</span> <span class="fu">drop_na</span>())) <span class="sc">%&gt;%</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(species, samp) <span class="sc">%&gt;%</span> </span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unnest</span>(samp)</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>sp <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"ks"</span>, <span class="st">"pd"</span>, <span class="st">"pp"</span>)</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="co"># subset data by species</span></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>clicks <span class="ot">&lt;-</span> <span class="fu">lapply</span>(sp, \(x) <span class="fu">filter</span>(samp2, species<span class="sc">==</span>x))</span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="co"># create distance matrices.</span></span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>dist2 <span class="ot">&lt;-</span> <span class="fu">lapply</span>(clicks, \(c) c <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(species, eventId)) <span class="sc">%&gt;%</span> <span class="fu">column_to_rownames</span>(<span class="st">"id"</span>) <span class="sc">%&gt;%</span> <span class="fu">scale</span>() <span class="sc">%&gt;%</span> <span class="fu">dist</span>())</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>cl2 <span class="ot">&lt;-</span> <span class="fu">lapply</span>(dist2, densityClust)</span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Perform density clustering. Static values chosen for rho and delta.</span></span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="co"># This decision does not seem to be critical, because the algorithm strongly favors a single cluster for each species.</span></span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>cl2 <span class="ot">&lt;-</span> <span class="fu">lapply</span>(cl2, findClusters, <span class="at">delta =</span> <span class="dv">8</span>, <span class="at">rho =</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>samp_rm <span class="ot">&lt;-</span> train.ec <span class="sc">%&gt;%</span> </span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># drop metadata</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(UID<span class="sc">:</span>noiseLevel, BinaryFile, eventLabel,detectorName, db)) <span class="sc">%&gt;%</span> </span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># drop variables to avoid creating artifacts in the cluster plot.</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(species, eventId, duration<span class="sc">:</span>peak, Q_10dB<span class="sc">:</span>centerkHz_3dB) <span class="sc">%&gt;%</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># perform logarithmic transform for non-normally distributed variables</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">log_duration =</span> <span class="fu">log</span>(duration), <span class="at">log_Q_3dB =</span> <span class="fu">log</span>(Q_3dB), <span class="at">log_Q_10dB =</span> <span class="fu">log</span>(Q_10dB), <span class="at">.keep =</span> <span class="st">"unused"</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>sp <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"ks"</span>, <span class="st">"pd"</span>, <span class="st">"pp"</span>)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co"># subset data by species</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>samp_sp <span class="ot">&lt;-</span> <span class="fu">lapply</span>(sp, \(x) <span class="fu">filter</span>(samp_rm, species<span class="sc">==</span>x))</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co"># create distance matrices.</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>dist_sp <span class="ot">&lt;-</span> <span class="fu">lapply</span>(samp_sp, \(s) s <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(species, eventId)) <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">n</span>()) <span class="sc">%&gt;%</span> <span class="fu">column_to_rownames</span>(<span class="st">"id"</span>) <span class="sc">%&gt;%</span> <span class="fu">scale</span>() <span class="sc">%&gt;%</span> <span class="fu">dist</span>())</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>cl_sp <span class="ot">&lt;-</span> <span class="fu">lapply</span>(dist_sp, densityClust)</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Perform density clustering. Static values chosen for rho and delta.</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="co"># This decision does not seem to be critical, because the algorithm strongly favors a single cluster for each species.</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>cl_sp <span class="ot">&lt;-</span> <span class="fu">lapply</span>(cl_sp, findClusters, <span class="at">delta =</span> <span class="dv">8</span>, <span class="at">rho =</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p><a href="#fig-event-clusters" class="quarto-xref">Figure&nbsp;3</a> shows the resulting density cluster plots and <a href="#fig-mds-events" class="quarto-xref">Figure&nbsp;4</a> shows the plots with the points colored by event.</p>
 <div class="cell">
@@ -341,6 +310,10 @@ Figure&nbsp;3: Click clusters for each species class
 </div>
 </div>
 <div class="cell">
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The `&lt;scale&gt;` argument of `guides()` cannot be `FALSE`. Use "none" instead as
+of ggplot2 3.3.4.</code></pre>
+</div>
 <div id="fig-mds-events" class="cell quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-mds-events-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -382,7 +355,7 @@ Figure&nbsp;3: Click clusters for each species class
 </div>
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-mds-events-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;4: MDS plot showing distances between clicks, colored by event. Legend is hidden due to large number of events in each species class.
+Figure&nbsp;4: MDS plot showing distances between clicks, colored by event. Legend is hidden for harbor porpoise due to large number of events.
 </figcaption>
 </figure>
 </div>
@@ -391,9 +364,43 @@ Figure&nbsp;4: MDS plot showing distances between clicks, colored by event. Lege
 <section id="discussion-1" class="level3">
 <h3 class="anchored" data-anchor-id="discussion-1">Discussion</h3>
 <ul>
-<li>The density clustering algorithm appears to strongly favors a single cluster in each species, suggesting that there are no outlying events.</li>
-<li>When points are colored by event, variation among events is more evident. This variation does not appear to be strong enough to manifest as more than one density-based cluster.</li>
+<li>The density clustering algorithm appears to strongly favor a single cluster for both Dall’s porpoise and harbor porpoise, suggesting that there are no outlying events.</li>
+<li>When points are colored by event, variation among events is more evident. This variation does not appear to be strong enough to manifest as more than one density-based cluster, except in the case of <em>Kogia</em>.</li>
+<li>In the case of <em>Kogia</em>, a solution of two clusters appears to be favored.
+<ul>
+<li>Cluster 1, the smaller cluster, derives most of its clicks from the event identified as <code>PG2_02_09_CCES_023_Ksp - Copy.OE4</code>.</li>
+<li>This same event, which happens to be the largest <em>Kogia</em> event in the training set, has the majority of its clicks in the dominant cluster, cluster 2. This is shown in <a href="#tbl-ks-clusters" class="quarto-xref">Table&nbsp;2</a>.</li>
+<li>In the <em>Kogia</em> distance plot, you can see a tight cluster of purple dots corresponding to the event in question. This appears to be the signal that is causing the density clustering algorithm to create a second cluster.</li>
+</ul></li>
 </ul>
+<div id="tbl-ks-clusters" class="cell anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-ks-clusters-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Cluster assignments of <em>Kogia</em> clicks, separated by event
+</figcaption>
+<div aria-describedby="tbl-ks-clusters-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output cell-output-stdout">
+<pre><code>                                   
+                                     1  2
+  PG2_02_09_CCES_022_Ksp - Copy.OE1  0  4
+  PG2_02_09_CCES_022_Ksp - Copy.OE2  0  9
+  PG2_02_09_CCES_022_Ksp - Copy.OE3  0  9
+  PG2_02_09_CCES_022_Ksp - Copy.OE4  0 13
+  PG2_02_09_CCES_022_Ksp - Copy.OE5  0 30
+  PG2_02_09_CCES_022_Ksp - Copy.OE6  0  3
+  PG2_02_09_CCES_022_Ksp - Copy.OE7  1  8
+  PG2_02_09_CCES_022_Ksp - Copy.OE8  0 10
+  PG2_02_09_CCES_023_Ksp - Copy.OE1  0  7
+  PG2_02_09_CCES_023_Ksp - Copy.OE2  0  5
+  PG2_02_09_CCES_023_Ksp - Copy.OE3  0  4
+  PG2_02_09_CCES_023_Ksp - Copy.OE4 14 38
+  PG2_02_09_CCES_023_Ksp - Copy.OE5  0  5
+  PG2_02_09_CCES_023_Ksp - Copy.OE6  0 17
+  PG2_02_09_CCES_023_Ksp - Copy.OE7  1 12</code></pre>
+</div>
+</div>
+</figure>
+</div>
 </section>
 </section>
 
