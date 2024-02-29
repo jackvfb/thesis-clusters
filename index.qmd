@@ -33,16 +33,18 @@ library(densityClust)
 set.seed(123)
 
 # slice sample of 200 clicks from each species
-samp <- nbhf_clicks %>% 
+samp <- train.ec %>%
   group_by(species) %>%
-  slice_sample(n=200) %>%
+  slice_sample(n=120) %>%
   ungroup()
 
 samp_rm <- samp %>% 
   # drop metadata
   select(-c(UID:noiseLevel, BinaryFile, eventLabel,detectorName, db)) %>% 
   # drop variables to avoid creating artifacts in the cluster plot.
-  select(species, eventId, duration:peak, Q_10dB:centerkHz_3dB)
+  select(species, eventId, duration:peak, Q_10dB:centerkHz_3dB) %>%
+  # perform logarithmic transform for non-normally distributed variables
+  mutate(log_duration = log(duration), log_Q_3dB = log(Q_3dB), log_Q_10dB = log(Q_10dB), .keep = "unused")
 
 # calculate Euclidean distances
 dist <- samp_rm %>%
@@ -54,7 +56,7 @@ dist <- samp_rm %>%
 
 cl <- densityClust(dist)
 # set rho and delta values
-cl <- findClusters(cl, rho=25, delta=2)
+cl <- findClusters(cl, rho=10, delta=2.5)
 ```
 Using the above method, the density clustering algorithm formed the clusters shown in @fig-density-clust. The counts of each species in each of the resulting clusters is given in @tbl-clust-assn. The MDS plot is shown with the points colored by species in @fig-mds-species.
 
@@ -89,23 +91,11 @@ ggplot(data = mds) +
 
 ### Discussion
 
-- For all species, we see that clicks cluster predominately in a single cluster, with little overlap between different species classes.
-- The MDS plot similarly shows that clicks separate from one another on the basis of species class.
-- From @tbl-clust-assn we see that cluster 3 is very small, containing just three Kogia clicks.
-    - @tbl-clust-ks shows that the entirety of cluster 3 is formed from a few anomalous clicks in *Kogia* event identified as `PG2_02_09_CCES_023_Ksp - Copy.OE4`.
-    - That same event, which happens to be the largest *Kogia* event in the entire training set, has the overwhelming majority of it's clicks in cluster 4.
-
-```{r}
-#| label: tbl-clust-ks
-#| tbl-cap: "Table of cluster assignments for all *Kogia* events"
-#| 
-df <- data.frame("species" = samp_rm$species,
-           "eventId" = samp_rm$eventId,
-           "cluster" = cl$clusters) %>%
-  filter(species=="ks")
-
-table(df$eventId, df$cluster)
-```
+- Each of the three clusters appears to be dominated by a different species class:
+  - Cluster 1: Dall's porpoise
+  - Cluster 2: *Kogia*
+  - Cluster 3: harbor porpoise
+- The MDS plot similarly shows that clicks separate into three different clusters by species class.
 
 ## Objective 2 {#sec-events}
 
@@ -119,29 +109,24 @@ We will now subset the training data by species and then re perform density clus
 
 set.seed(123)
 
-samp2 <- nbhf_clicks %>%
-  nest(data=-species) %>%
-  # determine the median event n for each species
-  mutate(median_ev_n=map_dbl(data,\(d) d %>% count(eventId) %>% pull(n) %>% median())) %>%
-  # for events with n greater than the median, slice a sample in size equal to the median
-  # since n varies across two orders of magnitude, intended to balance representation in the plot
-  mutate(samp=map2(data, median_ev_n, \(d, s) d %>% group_by(eventId) %>% slice_sample(n=s) %>% ungroup())) %>%
-  # select variables of interest
-  mutate(samp=map(samp, \(s) select(s, eventId, duration:peak, Q_10dB:centerkHz_3dB))) %>%
-  mutate(samp=map(samp, \(s) s %>% mutate(id=1:n()) %>% drop_na())) %>%
-  select(species, samp) %>% 
-  unnest(samp)
+samp_rm <- train.ec %>% 
+  # drop metadata
+  select(-c(UID:noiseLevel, BinaryFile, eventLabel,detectorName, db)) %>% 
+  # drop variables to avoid creating artifacts in the cluster plot.
+  select(species, eventId, duration:peak, Q_10dB:centerkHz_3dB) %>%
+  # perform logarithmic transform for non-normally distributed variables
+  mutate(log_duration = log(duration), log_Q_3dB = log(Q_3dB), log_Q_10dB = log(Q_10dB), .keep = "unused")
 
 
 sp <- c("ks", "pd", "pp")
 # subset data by species
-clicks <- lapply(sp, \(x) filter(samp2, species==x))
+samp_sp <- lapply(sp, \(x) filter(samp_rm, species==x))
 # create distance matrices.
-dist2 <- lapply(clicks, \(c) c %>% select(-c(species, eventId)) %>% column_to_rownames("id") %>% scale() %>% dist())
-cl2 <- lapply(dist2, densityClust)
+dist_sp <- lapply(samp_sp, \(s) s %>% select(-c(species, eventId)) %>% mutate(id = 1:n()) %>% column_to_rownames("id") %>% scale() %>% dist())
+cl_sp <- lapply(dist_sp, densityClust)
 # Perform density clustering. Static values chosen for rho and delta.
 # This decision does not seem to be critical, because the algorithm strongly favors a single cluster for each species.
-cl2 <- lapply(cl2, findClusters, delta = 8, rho = 5)
+cl_sp <- lapply(cl_sp, findClusters, delta = 8, rho = 5)
 ```
 
 @fig-event-clusters shows the resulting density cluster plots and @fig-mds-events shows the plots with the points colored by event.
@@ -154,36 +139,47 @@ cl2 <- lapply(cl2, findClusters, delta = 8, rho = 5)
 #|     - "Dall's porpoise"
 #|     - "Harbor porpoise"
 
-plotDensityClust(cl2[[1]])
-plotDensityClust(cl2[[2]])
-plotDensityClust(cl2[[3]])
+plotDensityClust(cl_sp[[1]])
+plotDensityClust(cl_sp[[2]])
+plotDensityClust(cl_sp[[3]])
 ```
 
 ```{r}
 #| label: fig-mds-events
-#| fig-cap: "MDS plot showing distances between clicks, colored by event. Legend is hidden due to large number of events in each species class."
+#| fig-cap: "MDS plot showing distances between clicks, colored by event. Legend is hidden for harbor porpoise due to large number of events."
 #| fig-subcap:
 #|     - "*Kogia*"
 #|     - "Dall's porpoise"
 #|     - "Harbor porpoise"
 #| 
 
-mds2 <- lapply(dist2, function(x) {as_tibble(cmdscale(x))})
-mds2 <- map2(mds2, clicks, function(x, y) {cbind(x, "eventId" = y$eventId)})
+mds_sp <- lapply(dist_sp, function(x) {as_tibble(cmdscale(x))})
+mds_sp <- map2(mds_sp, samp_sp, function(x, y) {cbind(x, "eventId" = y$eventId)})
 
 makePlot <- function(x) {
   ggplot(data = x) +
-    geom_point(aes(V1, V2, color = eventId), show.legend = FALSE) +
+    geom_point(aes(V1, V2, color = eventId), show.legend = TRUE) +
     xlab("Dimension 1") +
     ylab("Dimension 2")
 }
 
-makePlot(mds2[[1]])
-makePlot(mds2[[2]])
-makePlot(mds2[[3]])
+makePlot(mds_sp[[1]])
+makePlot(mds_sp[[2]])
+makePlot(mds_sp[[3]]) + guides(color=FALSE)
 ```
 
 ### Discussion
 
-- The density clustering algorithm appears to strongly favors a single cluster in each species, suggesting that there are no outlying events.
-- When points are colored by event, variation among events is more evident. This variation does not appear to be strong enough to manifest as more than one density-based cluster.
+- The density clustering algorithm appears to strongly favor a single cluster for both Dall's porpoise and harbor porpoise, suggesting that there are no outlying events.
+- When points are colored by event, variation among events is more evident. This variation does not appear to be strong enough to manifest as more than one density-based cluster, except in the case of *Kogia*.
+- In the case of *Kogia*, a solution of two clusters appears to be favored.
+  - Cluster 1, the smaller cluster, derives most of its clicks from the event identified as `PG2_02_09_CCES_023_Ksp - Copy.OE4`.
+  - This same event, which happens to be the largest *Kogia* event in the training set, has the majority of its clicks in the dominant cluster, cluster 2. This is shown in @tbl-ks-clusters.
+  - In the *Kogia* distance plot, you can see a tight cluster of purple dots corresponding to the event in question. This appears to be the signal that is causing the density clustering algorithm to create a second cluster.
+
+```{r}
+#| label: tbl-ks-clusters
+#| tbl-cap: "Cluster assignments of *Kogia* clicks, separated by event"
+
+table(samp_sp[[1]]$eventId, cl_sp[[1]]$clusters)
+```
